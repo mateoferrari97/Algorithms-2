@@ -45,7 +45,6 @@ void destruir_todo(nodo_t* actual, abb_destruir_dato_t destruir_dato){
     destruir_todo(actual->der, destruir_dato);
     destruir_todo(actual->izq, destruir_dato);
     nodo_destruir(actual, destruir_dato);
-
 }
 void* nodo_destruir(nodo_t* nodo, abb_destruir_dato_t destruir_dato){
     if(!nodo) return NULL;
@@ -121,7 +120,7 @@ void *abb_obtener(const abb_t *arbol, const char *clave){
     return nodo->dato;
 }
 bool abb_pertenece(const abb_t *arbol, const char *clave){
-    return abb_pertenece(arbol, clave) != NULL;
+    return abb_obtener(arbol, clave) != NULL;
 }
 size_t abb_cantidad(abb_t *arbol){
     if(!arbol) return arbol->cantidad;
