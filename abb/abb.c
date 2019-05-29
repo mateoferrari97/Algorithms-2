@@ -17,34 +17,32 @@ typedef  struct abb{
     abb_destruir_dato_t destruir_dato;
 }abb_t;
 
-nodo_t* nodo_crear(const char* clave, void* dato){
-    nodo_t* nodo = malloc(sizeof(nodo_t));
-    if(!nodo) return NULL;
-    nodo->clave = clave;
-    nodo->dato = dato;
-    nodo->der = NULL;
-    nodo->izq = NULL;
-    return nodo;
-}
-
 /*****************************************************************************
 ******************************************************************************
 ****************        FUNCIONES AUXILIARES  ABB       **********************
 ******************************************************************************
 ******************************************************************************/
-
+char* copiar_clave(const char* clave){
+    char* clave_nueva =  malloc(sizeof(char) + 1);
+    if(!clave_nueva) return NULL;
+    strcpy(clave_nueva, clave);
+    return clave_nueva;
+}
+nodo_t* nodo_crear(const char* clave, void* dato){
+    nodo_t* nodo = malloc(sizeof(nodo_t));
+    if(!nodo) return NULL;
+    nodo->clave = copiar_clave(clave);
+    nodo->dato = dato;
+    nodo->der = NULL;
+    nodo->izq = NULL;
+    return nodo;
+}
 nodo_t* nodo_buscar(nodo_t** padre, nodo_t* hijo, const char* clave, abb_comparar_clave_t cmp){
     if(!hijo || (cmp(hijo->clave, clave) == 0)) return hijo;
-    *padre = &hijo;
-    if(cmp((*padre)->clave, clave) > 0) return nodo_buscar(&padre, (*padre)->izq, clave, cmp);
-    return nodo_buscar(&padre, (*padre)->der, clave, cmp);
+    *padre = hijo;
+    if(cmp((*padre)->clave, clave) > 0) return nodo_buscar(padre, (*padre)->izq, clave, cmp);
+    return nodo_buscar(padre, (*padre)->der, clave, cmp);
     
-}
-void destruir_todo(nodo_t* actual, abb_destruir_dato_t destruir_dato){
-    if(!actual) return;
-    destruir_todo(actual->der, destruir_dato);
-    destruir_todo(actual->izq, destruir_dato);
-    nodo_destruir(actual, destruir_dato);
 }
 void* nodo_destruir(nodo_t* nodo, abb_destruir_dato_t destruir_dato){
     if(!nodo) return NULL;
@@ -53,6 +51,12 @@ void* nodo_destruir(nodo_t* nodo, abb_destruir_dato_t destruir_dato){
     free(nodo->clave);
     free(nodo);
     return dato;
+}
+void destruir_todo(nodo_t* actual, abb_destruir_dato_t destruir_dato){
+    if(!actual) return;
+    destruir_todo(actual->der, destruir_dato);
+    destruir_todo(actual->izq, destruir_dato);
+    nodo_destruir(actual, destruir_dato);
 }
 
 /*****************************************************************************
@@ -70,28 +74,27 @@ abb_t* abb_crear(abb_comparar_clave_t cmp, abb_destruir_dato_t destruir_dato){
     abb->destruir_dato = destruir_dato;
     return abb;
 }
-
 bool abb_guardar(abb_t *arbol, const char *clave, void *dato){
     if(!arbol) return false;
     nodo_t* padre = NULL;
-    nodo_t* nodo = buscar_nodo(&padre, arbol->raiz, clave, arbol->cmp);
+    nodo_t* nodo = nodo_buscar(&padre, arbol->raiz, clave, arbol->cmp);
     if(!nodo){
-        nodo_t* nodo = nodo_crear(clave, dato);
-        if(!nodo) return false;
+        nodo_t* nodo_nuevo = nodo_crear(clave, dato);
+        if(!nodo_nuevo) return false;
         if(!padre){
-            arbol->raiz = nodo;
+            arbol->raiz = nodo_nuevo;
         }else{
             if(arbol->cmp(padre->clave, clave) > 0){
-                padre->izq = nodo;
+                padre->izq = nodo_nuevo;
             }else{
-                padre->der = nodo;
+                padre->der = nodo_nuevo;
             }            
         }
         arbol->cantidad++;        
     }else{
-        void* dato = nodo->dato;
+        void* dato_anterior = nodo->dato;
         nodo->dato = dato;
-        if(arbol->destruir_dato) arbol->destruir_dato(dato);
+        if(arbol->destruir_dato) arbol->destruir_dato(dato_anterior);
     }
     return true;
 }
@@ -123,7 +126,7 @@ bool abb_pertenece(const abb_t *arbol, const char *clave){
     return abb_obtener(arbol, clave) != NULL;
 }
 size_t abb_cantidad(abb_t *arbol){
-    if(!arbol) return arbol->cantidad;
+    return arbol->cantidad;
 }
 void abb_destruir(abb_t *arbol){
     if(arbol->cantidad != 0) destruir_todo(arbol->raiz, arbol->destruir_dato);
