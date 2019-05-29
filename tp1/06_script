@@ -1,0 +1,7 @@
+Leo,
+Me muevo a la siguiente celda y seteo 5: >+++++
+[
+	Vuelvo a la celda con el numero<
+	Imprimo y luego incremento.+
+	Resto uno al contador >-
+]

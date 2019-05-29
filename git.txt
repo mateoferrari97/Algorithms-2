@@ -1,0 +1,57 @@
+Taller de Sistemas de Control de Versiones: (AKA: Taller de Git)
+
+-Repositorio: conjunto de archivos y directorios que hacen al proyecto en el cual trabajamos.
+
+-Local: es el versionado de los archivos que tenemos en PC.
+
+-Remoto: idem, pero en la nube, hosteado en servidores(github,gitlab,bitbucket).
+
+-Commit: Un cambio en mi repositorio. Se identifica con un código único de 40 caracteres.
+
+-Head: es el último commit hecho. Head-1 es el anteultimo y así.
+(Ponerle nombres descriptivos, el por qué)
+(Se recomiento hacer commit atomicos porque se te rompe algo y es más facil arreglarlo)
+
+-Instalar Git:
+1) sudo apt-get install git
+
+-Comandos basicos:
+1) git init/git clone --> iniciar trabajo con git
+2) git add <archivos> --> para agregar al borrador/index (ponerlo en verde)
+3) git status --> ver que esta pasando
+4) git log --> ver los commits que se hicieron (historial)
+5) git commit -m <mensaje> --> marcar que el borrador pasa a ser una version nueva
+6) git diff <archivo1> <archivo2> etc --> ver diferencias entre distintas instancias del proyecto 
+
+-¿Como empezar a trabajar?
+1) Voy a una carpeta y hago un -> git init
+2) Hago los cambios que quiero. EJ: crear "ejemplo.txt"
+3) git add ejemplo.txt
+4) git push origin master
+-------
+
+-git push origin (subir cambios)
+-git pull (traer cambios)
+-git diff HEAD HEAD-1 (para ver diferencia entre versiones)
+
+-------
+1) cd Documentos/Algoritmos
+2) cd proyecto
+3) git init (me crea un .git)
+-) echo "hola, mateo" > hola.txt
+4) Si pongo git status me dice que cambios se aplicaron, por ejemplo: se agrego un archivo, se modifico uno, etc.
+5) git add archivo (guarda los cambios que hicimos pero no lo actualiza en nuestro repositorio local)
+6) git status (ve si hubieron cambios)
+7) git commit -m "Agrego al proyecto, hola.txt" -> (me lo actualiza el repositorio en el local)
+8) git push origin master (para subir a tu repositorio en el servidor)
+7) git log me dice que cambios hizo
+
+-------
+
+-Branches: trabajar independientemente sin rmper la rama central del programa (master). Cuando termino lo fusiono a lo que ya tenia o puedo proponerlo como cambio y esperar que me lo aprueben o no. Posiblemente haya coliciones.
+
+
+
+
+
+
