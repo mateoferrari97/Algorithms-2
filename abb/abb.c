@@ -187,7 +187,7 @@ void abb_destruir(abb_t *arbol){
 ********************        ITERADOR EXTERNO ABB       ***********************
 ******************************************************************************
 ******************************************************************************/
-/* abb_iter_t *abb_iter_in_crear(const abb_t *arbol){
+abb_iter_t *abb_iter_in_crear(const abb_t *arbol){
     if(!arbol) return NULL;
     abb_iter_t* iter = malloc(sizeof(abb_iter_t));
     if(!iter) return NULL;
@@ -210,4 +210,4 @@ bool abb_iter_in_al_final(const abb_iter_t *iter){
 void abb_iter_in_destruir(abb_iter_t* iter){
     pila_destruir(iter->pila);
     free(iter);
-} */
+}
