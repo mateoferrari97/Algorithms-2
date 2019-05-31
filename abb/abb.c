@@ -44,10 +44,10 @@ nodo_t* nodo_buscar(nodo_t** padre, nodo_t* hijo, const char* clave, abb_compara
     return nodo_buscar(padre, (*padre)->der, clave, cmp);
     
 }
-void* nodo_destruir(abb_t* arbol, nodo_t* nodo, abb_destruir_dato_t destruir_dato){
+void* nodo_destruir(abb_t* arbol, nodo_t* nodo){
     if(!nodo) return NULL;
     void* dato = nodo->dato;
-    if(destruir_dato) destruir_dato(nodo->dato);
+    if(arbol->destruir_dato) arbol->destruir_dato(nodo->dato);
     free(nodo->clave);
     free(nodo);
     arbol->cantidad--;
@@ -59,33 +59,64 @@ void destruir_todo(nodo_t* actual, abb_destruir_dato_t destruir_dato){
     destruir_todo(actual->izq, destruir_dato);
     //nodo_destruir(actual, destruir_dato);
 }
-void* _abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, const char* clave, int lado){
+void* abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
     if(!(hijo->der) && (hijo->izq)){
+        if(!padre) arbol->raiz = hijo->izq;
+        else if(lado == -1) padre->izq = hijo->izq;
+        else if(lado == 1) padre->der = hijo->izq;
+        return nodo_destruir(arbol, hijo);
+    } 
+    if(!(hijo->izq) && (hijo->der)){
         if(!padre) arbol->raiz = hijo->der;
+        else if(lado == -1) padre->izq = hijo->der;
         else if(lado == 1) padre->der = hijo->der;
-        else if(lado == 0) padre->izq = hijo->izq;
+        return nodo_destruir(arbol, hijo);        
     }
+    return NULL;
 }
-void* abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, const char* clave, int lado){
-    return;
+nodo_t* buscar_padre(nodo_t* reemplazante){
+    nodo_t* padre_reemplazante = NULL;
+    while(reemplazante->der != NULL){
+        padre_reemplazante = reemplazante;
+        reemplazante = reemplazante->der;
+    }   
+    return padre_reemplazante; 
+}
+void* abb_borrar_dos_hijos(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
+    nodo_t* padre_reemplazante = buscar_padre(hijo->izq);
+    nodo_t* reemplazante;
+    if(padre_reemplazante){
+        reemplazante = padre_reemplazante->der;
+        padre_reemplazante->der = reemplazante->izq;
+        reemplazante->der = hijo->der;
+        reemplazante->izq = hijo->izq;
+    }else{
+        reemplazante = hijo->izq;
+        reemplazante->der = hijo->der;
+    }
+    if(!padre) arbol->raiz = reemplazante;
+    else if(lado == -1) padre->izq = reemplazante;
+    else if(lado == 1) padre->der = reemplazante;
+    return nodo_destruir(arbol, hijo);
 }
 void* _abb_borrar(abb_t* arbol, nodo_t* hijo, nodo_t* padre, const char* clave, int lado){
-    if(arbol->cmp(hijo->clave, clave) > 0) return _abb_borrar(arbol, hijo->izq, hijo, clave, -1);
     if(arbol->cmp(hijo->clave, clave) < 0) return _abb_borrar(arbol, hijo->der, hijo, clave, 1);
+    if(arbol->cmp(hijo->clave, clave) > 0) return _abb_borrar(arbol, hijo->izq, hijo, clave, -1);
     if(arbol->cmp(hijo->clave, clave) == 0){
         if(!(hijo->izq) && !(hijo->der)){
             if(!padre) arbol->raiz = NULL;
             else if(lado == -1) padre->izq = NULL;
             else if(lado == 1) padre->der = NULL;
-            return nodo_destruir(arbol, hijo, arbol->destruir_dato);
+            return nodo_destruir(arbol, hijo);
         }
-        if(!(hijo->izq) && (hijo->der) || (hijo->izq) && !(hijo->der)){
-            return abb_borrar_un_hijo(arbol, hijo, padre, clave, lado);
+        if((!(hijo->izq) && (hijo->der)) || ((hijo->izq) && !(hijo->der))){
+            return abb_borrar_un_hijo(arbol, hijo, padre, lado);
         }
         if((hijo->izq) && (hijo->der)){
-            return;
+            return abb_borrar_dos_hijos(arbol, hijo, padre, lado);
         }
     }
+    return NULL;
 }
 
 /*****************************************************************************
