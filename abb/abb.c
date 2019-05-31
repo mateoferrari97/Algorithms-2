@@ -1,4 +1,5 @@
 #include "abb.h"
+#include "pila.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,6 +21,10 @@ typedef  struct abb{
     abb_comparar_clave_t cmp;
     abb_destruir_dato_t destruir_dato;
 }abb_t;
+typedef struct abb_iter{
+    pila_t* pila;
+    nodo_t* actual;
+}abb_iter_t;
 /*****************************************************************************
 ******************************************************************************
 ****************        FUNCIONES AUXILIARES  ABB       **********************
@@ -63,13 +68,13 @@ void destruir_todo(abb_t* arbol, nodo_t* actual){
     nodo_destruir(arbol, actual);
 }
 void* abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
-    if(!(hijo->der) && (hijo->izq)){
+    if(!hijo->der && hijo->izq){
         if(!padre) arbol->raiz = hijo->izq;
         else if(lado == -1) padre->izq = hijo->izq;
         else if(lado == 1) padre->der = hijo->izq;
         return nodo_destruir(arbol, hijo);
     } 
-    if(!(hijo->izq) && (hijo->der)){
+    if(!hijo->izq && hijo->der){
         if(!padre) arbol->raiz = hijo->der;
         else if(lado == -1) padre->izq = hijo->der;
         else if(lado == 1) padre->der = hijo->der;
@@ -103,16 +108,16 @@ void* _abb_borrar(abb_t* arbol, nodo_t* hijo, nodo_t* padre, const char* clave, 
     if(arbol->cmp(hijo->clave, clave) < 0) return _abb_borrar(arbol, hijo->der, hijo, clave, 1);
     if(arbol->cmp(hijo->clave, clave) > 0) return _abb_borrar(arbol, hijo->izq, hijo, clave, -1);
     if(arbol->cmp(hijo->clave, clave) == 0){
-        if(!(hijo->izq) && !(hijo->der)){
+        if(!hijo->izq && !hijo->der){
             if(!padre) arbol->raiz = NULL;
             else if(lado == -1) padre->izq = NULL;
             else if(lado == 1) padre->der = NULL;
             return nodo_destruir(arbol, hijo);
         }
-        if((!(hijo->izq) && (hijo->der)) || ((hijo->izq) && !(hijo->der))){
+        if((!hijo->izq && hijo->der) || (hijo->izq && !hijo->der)){
             return abb_borrar_un_hijo(arbol, hijo, padre, lado);
         }
-        if((hijo->izq) && (hijo->der)){
+        if(hijo->izq && hijo->der){
             return abb_borrar_dos_hijos(arbol, hijo, padre, lado);
         }
     }
@@ -182,3 +187,27 @@ void abb_destruir(abb_t *arbol){
 ********************        ITERADOR EXTERNO ABB       ***********************
 ******************************************************************************
 ******************************************************************************/
+/* abb_iter_t *abb_iter_in_crear(const abb_t *arbol){
+    if(!arbol) return NULL;
+    abb_iter_t* iter = malloc(sizeof(abb_iter_t));
+    if(!iter) return NULL;
+    iter->pila = pila_crear();
+    if(!iter->pila) return NULL;
+    iter->actual = arbol->raiz;
+    return iter;
+}
+bool abb_iter_in_avanzar(abb_iter_t *iter){
+    if(abb_iter_in_al_final(iter)) return false;
+    return true;
+}
+const char *abb_iter_in_ver_actual(const abb_iter_t *iter){
+    if(!iter->actual) return NULL;
+    return iter->actual->clave;
+}
+bool abb_iter_in_al_final(const abb_iter_t *iter){
+    return !iter->actual;
+}
+void abb_iter_in_destruir(abb_iter_t* iter){
+    pila_destruir(iter->pila);
+    free(iter);
+} */
