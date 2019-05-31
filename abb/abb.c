@@ -2,7 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+/*****************************************************************************
+******************************************************************************
+*********************   ESTRUCTURA DE DATOS ABB    ***************************
+******************************************************************************
+******************************************************************************/
 typedef struct nodo{
     char* clave;
     void* dato;
@@ -16,7 +20,6 @@ typedef  struct abb{
     abb_comparar_clave_t cmp;
     abb_destruir_dato_t destruir_dato;
 }abb_t;
-
 /*****************************************************************************
 ******************************************************************************
 ****************        FUNCIONES AUXILIARES  ABB       **********************
@@ -53,11 +56,11 @@ void* nodo_destruir(abb_t* arbol, nodo_t* nodo){
     arbol->cantidad--;
     return dato;
 }
-void destruir_todo(nodo_t* actual, abb_destruir_dato_t destruir_dato){
+void destruir_todo(abb_t* arbol, nodo_t* actual){
     if(!actual) return;
-    destruir_todo(actual->der, destruir_dato);
-    destruir_todo(actual->izq, destruir_dato);
-    //nodo_destruir(actual, destruir_dato);
+    destruir_todo(arbol, actual->der);
+    destruir_todo(arbol, actual->izq);
+    nodo_destruir(arbol, actual);
 }
 void* abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
     if(!(hijo->der) && (hijo->izq)){
@@ -74,16 +77,13 @@ void* abb_borrar_un_hijo(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
     }
     return NULL;
 }
-nodo_t* buscar_padre(nodo_t* reemplazante){
-    nodo_t* padre_reemplazante = NULL;
-    while(reemplazante->der != NULL){
-        padre_reemplazante = reemplazante;
-        reemplazante = reemplazante->der;
-    }   
-    return padre_reemplazante; 
-}
 void* abb_borrar_dos_hijos(abb_t* arbol, nodo_t* hijo, nodo_t* padre, int lado){
-    nodo_t* padre_reemplazante = buscar_padre(hijo->izq);
+    nodo_t* padre_reemplazante = NULL;
+    nodo_t* aux = hijo->izq;
+    while(aux->der != NULL){
+        padre_reemplazante = aux;
+        aux = aux->der;
+    }     
     nodo_t* reemplazante;
     if(padre_reemplazante){
         reemplazante = padre_reemplazante->der;
@@ -118,13 +118,11 @@ void* _abb_borrar(abb_t* arbol, nodo_t* hijo, nodo_t* padre, const char* clave, 
     }
     return NULL;
 }
-
 /*****************************************************************************
 ******************************************************************************
 ********************        PRIMITIVAS ABB       *****************************
 ******************************************************************************
 ******************************************************************************/
-
 abb_t* abb_crear(abb_comparar_clave_t cmp, abb_destruir_dato_t destruir_dato){
     abb_t* abb = malloc(sizeof(abb_t));
     if(!abb) return NULL;
@@ -176,6 +174,11 @@ size_t abb_cantidad(abb_t *arbol){
     return arbol->cantidad;
 }
 void abb_destruir(abb_t *arbol){
-    if(arbol->cantidad != 0) destruir_todo(arbol->raiz, arbol->destruir_dato);
+    if(abb_cantidad(arbol) != 0) destruir_todo(arbol,arbol->raiz);
     free(arbol);
 }
+/*****************************************************************************
+******************************************************************************
+********************        ITERADOR EXTERNO ABB       ***********************
+******************************************************************************
+******************************************************************************/
