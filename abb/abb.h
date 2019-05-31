@@ -27,3 +27,6 @@ bool abb_iter_in_avanzar(abb_iter_t *iter);
 const char *abb_iter_in_ver_actual(const abb_iter_t *iter);
 bool abb_iter_in_al_final(const abb_iter_t *iter);
 void abb_iter_in_destruir(abb_iter_t* iter);
+
+// iter interno
+void abb_in_order(abb_t* arbol, bool visitar(const char*, void*, void*), void* extra);
