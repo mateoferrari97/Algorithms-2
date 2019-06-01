@@ -185,14 +185,16 @@ static void prueba_abb_iterar(){
 
     char *claves[] = {"perro", "gato", "vaca"};
     char *valores[] = {"guau", "miau", "mu"};
-
     print_test("Prueba abb insertar clave1", abb_guardar(abb, claves[0], valores[0]));
     print_test("Prueba abb insertar clave2", abb_guardar(abb, claves[1], valores[1]));
     print_test("Prueba abb insertar clave3", abb_guardar(abb, claves[2], valores[2]));
     
     abb_iter_t* iter = abb_iter_in_crear(abb);
     
-    print_test("Prueba abb iterador esta al final, es false", strcmp(abb_iter_in_ver_actual(iter),claves[1]) == 0 );
+    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[1]) == 0);
+    print_test("Prueba abb iterador avanzar", abb_iter_in_avanzar(iter));
+    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[0]) == 0);
+    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[2]) == 0);
 
     abb_iter_in_destruir(iter);
     abb_destruir(abb);
