@@ -206,7 +206,7 @@ abb_iter_t *abb_iter_in_crear(const abb_t *arbol){
     abb_iter_t* iter = malloc(sizeof(abb_iter_t));
     if(!iter) return NULL;
     iter->pila = pila_crear();
-    if(!iter->pila) return NULL;
+    if(!iter->pila)return NULL;
     if(arbol->cantidad != 0){
         pila_apilar(iter->pila, arbol->raiz);
         apilar_hijos_izquierdos(iter->pila, arbol->raiz);
