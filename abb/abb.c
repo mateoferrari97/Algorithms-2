@@ -16,30 +16,30 @@
 *********************   ESTRUCTURA DE DATOS ABB    ***************************
 ******************************************************************************
 ******************************************************************************/
-typedef struct nodo{
+struct nodo{
     char* clave;
     void* dato;
     struct nodo* der;
     struct nodo* izq;
-}nodo_t;
-
-typedef  struct abb{
+};
+typedef struct nodo nodo_t;
+struct abb{
     size_t cantidad;
     nodo_t* raiz;
     abb_comparar_clave_t cmp;
     abb_destruir_dato_t destruir_dato;
-}abb_t;
-typedef struct abb_iter{
+};
+struct abb_iter{
     pila_t* pila;
     nodo_t* actual;
-}abb_iter_t;
+};
 /*****************************************************************************
 ******************************************************************************
 ****************        FUNCIONES AUXILIARES  ABB       **********************
 ******************************************************************************
 ******************************************************************************/
 char* copiar_clave(const char* clave){
-    char* clave_nueva =  malloc(sizeof(char) + 1);
+    char* clave_nueva =  malloc(sizeof(char) * strlen(clave) + 1);
     if(!clave_nueva) return NULL;
     strcpy(clave_nueva, clave);
     return clave_nueva;
@@ -206,29 +206,25 @@ abb_iter_t *abb_iter_in_crear(const abb_t *arbol){
     abb_iter_t* iter = malloc(sizeof(abb_iter_t));
     if(!iter) return NULL;
     iter->pila = pila_crear();
-    if(!iter->pila)return NULL;
-    if(arbol->cantidad != 0) apilar_hijos_izquierdos(iter->pila, arbol->raiz);
+    if(!iter->pila) return NULL;
+    apilar_hijos_izquierdos(iter->pila, arbol->raiz);
     iter->actual = pila_desapilar(iter->pila);
     return iter;
 }
+bool abb_iter_in_al_final(const abb_iter_t *iter){ 
+    return !iter->actual && pila_esta_vacia(iter->pila);
+}
 bool abb_iter_in_avanzar(abb_iter_t *iter){
     if(abb_iter_in_al_final(iter)) return false;
-    if(!iter->actual->der) iter->actual = pila_desapilar(iter->pila);
-    else{
-        iter->actual = iter->actual->der;
-        apilar_hijos_izquierdos(iter->pila, iter->actual->izq);
-    }
+    if(iter->actual->der) apilar_hijos_izquierdos(iter->pila, iter->actual->der);
+    iter->actual = pila_desapilar(iter->pila);
     return true;
 }
 const char *abb_iter_in_ver_actual(const abb_iter_t *iter){
-    if(pila_ver_tope(iter->pila)) return iter->actual->clave;
-    return NULL;
-}
-bool abb_iter_in_al_final(const abb_iter_t *iter){
-    return pila_esta_vacia(iter->pila);
+    if(!iter->actual) return NULL;
+    return iter->actual->clave;
 }
 void abb_iter_in_destruir(abb_iter_t* iter){
-    if(!iter) return;
     pila_destruir(iter->pila);
     free(iter);
 }
@@ -237,13 +233,13 @@ void abb_iter_in_destruir(abb_iter_t* iter){
 ********************        ITERADOR INTERNO ABB       ***********************
 ******************************************************************************
 ******************************************************************************/
-void _abb_in_order(abb_t* arbol, nodo_t* actual, bool visitar(const char*, void*, void*), void* extra){
+void _abb_in_order(nodo_t* actual, bool visitar(const char*, void*, void*), void* extra){
     if(!actual) return;
-    _abb_in_order(arbol, actual->izq, visitar, extra);
-    visitar(actual->clave, actual->dato, extra);
-    _abb_in_order(arbol, actual->der, visitar, extra);
+    if(actual->izq)_abb_in_order(actual->izq, visitar, extra);
+    if(!visitar(actual->clave, actual->dato, extra)) return;
+    if(actual->der)_abb_in_order(actual->der, visitar, extra);
 }
 void abb_in_order(abb_t* arbol, bool visitar(const char*, void*, void*), void* extra){
-    if(!arbol) return;
-    _abb_in_order(arbol, arbol->raiz, visitar, extra);
+    if(!arbol || abb_cantidad(arbol) == 0 || visitar == NULL) return;
+    _abb_in_order(arbol->raiz, visitar, extra);
 }

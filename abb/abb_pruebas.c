@@ -183,18 +183,17 @@ static void prueba_iterar_abb_vacio(){
 static void prueba_abb_iterar(){
     abb_t* abb = abb_crear(strcmp, NULL);
 
-    char *claves[] = {"perro", "gato", "vaca"};
-    char *valores[] = {"guau", "miau", "mu"};
+    char* claves[] = {"perro", "gato", "vaca"};
+    char* valores[] = {"guau", "miau", "mu"};
     print_test("Prueba abb insertar clave1", abb_guardar(abb, claves[0], valores[0]));
     print_test("Prueba abb insertar clave2", abb_guardar(abb, claves[1], valores[1]));
     print_test("Prueba abb insertar clave3", abb_guardar(abb, claves[2], valores[2]));
     
     abb_iter_t* iter = abb_iter_in_crear(abb);
-    
-    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[1]) == 0);
+    print_test("Prueba abb iterador es igual a clave1", strcmp(abb_iter_in_ver_actual(iter), claves[1]) == 0);
     print_test("Prueba abb iterador avanzar", abb_iter_in_avanzar(iter));
-    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[0]) == 0);
-    print_test("Prueba abb iterador es igual a clave2", strcmp(abb_iter_in_ver_actual(iter), claves[2]) == 0);
+    print_test("Prueba abb iterador es igual a clave0", strcmp(abb_iter_in_ver_actual(iter), claves[0]) == 0);
+    print_test("Prueba abb iterador avanzar", abb_iter_in_avanzar(iter));
 
     abb_iter_in_destruir(iter);
     abb_destruir(abb);
@@ -204,6 +203,8 @@ void pruebas_abb_alumno(){
     prueba_crear_abb_vacio();
     prueba_abb_insertar();
     prueba_abb_reemplazar();
+    prueba_abb_reemplazar_con_destruir();
+    prueba_abb_borrar();
     prueba_abb_clave_vacia();
     prueba_abb_valor_null();
     prueba_iterar_abb_vacio();
