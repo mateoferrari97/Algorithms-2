@@ -233,13 +233,16 @@ void abb_iter_in_destruir(abb_iter_t* iter){
 ********************        ITERADOR INTERNO ABB       ***********************
 ******************************************************************************
 ******************************************************************************/
-void _abb_in_order(nodo_t* actual, bool visitar(const char*, void*, void*), void* extra){
-    if(!actual) return;
-    if(actual->izq)_abb_in_order(actual->izq, visitar, extra);
-    if(!visitar(actual->clave, actual->dato, extra)) return;
-    if(actual->der)_abb_in_order(actual->der, visitar, extra);
+void _abb_in_order(nodo_t* actual, bool visitar(const char*, void*, void*), void* extra, bool* seguir){
+    if(actual->izq && *seguir)_abb_in_order(actual->izq, visitar, extra, seguir);
+    if(*seguir && !visitar(actual->clave, actual->dato, extra)){
+        *seguir = false;
+        return;
+    } 
+    if(actual->der && *seguir)_abb_in_order(actual->der, visitar, extra, seguir);
 }
 void abb_in_order(abb_t* arbol, bool visitar(const char*, void*, void*), void* extra){
-    if(!arbol || abb_cantidad(arbol) == 0 || visitar == NULL) return;
-    _abb_in_order(arbol->raiz, visitar, extra);
+    if(!arbol || abb_cantidad(arbol) == 0 || !visitar) return;
+    bool seguir = true;
+    _abb_in_order(arbol->raiz, visitar, extra, &seguir);
 }
