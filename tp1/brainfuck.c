@@ -24,17 +24,15 @@ unsigned char* crear_arr_variables(){
     for(i = 0; i < CANTIDAD_INICIAL_VECTOR; i++) arr[i] = 0;
     return arr;
 }
-
-int main(int argc, char const *argv[]){
-    if(argc != 2) return 0;
-    FILE* archivo = fopen(argv[1], "r");
-    if(!archivo) return 0;
+void brainfuck(char* nombre_archivo){
+    FILE* archivo = fopen(nombre_archivo, "r");
+    if(!archivo) return;
     size_t i = 0;
     unsigned char* ptr_variable;
     unsigned char* caracteres = crear_arr_caracteres(archivo);
     unsigned char* variables = crear_arr_variables();
     pila_t* ciclos = pila_crear();
-    if(!ciclos) return 0;
+    if(!ciclos) return;
     ptr_variable = variables;
     while(caracteres[i] != '\0'){
         switch (caracteres[i]){
@@ -72,7 +70,7 @@ int main(int argc, char const *argv[]){
                     }
                 }else{
                     size_t* pos = malloc(sizeof(size_t));
-                    if(!pos) return 0;
+                    if(!pos) return;
                     *pos = i;
                     pila_apilar(ciclos, pos);
                 }         
@@ -95,6 +93,13 @@ int main(int argc, char const *argv[]){
     free(variables);
     pila_destruir(ciclos);
     fclose(archivo);
+}
+
+int main(int argc, char *argv[]){
+    if(argc == 2){
+        char* archivo = argv[1];
+        brainfuck(archivo);
+    }
     return 0;
 }
 
