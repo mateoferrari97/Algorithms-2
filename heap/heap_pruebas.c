@@ -6,9 +6,6 @@
 #define MAX_ELEMENTOS 1000
 
 int comparar_numeros(int x, int y){
-    if(x == NULL && y == NULL) return 0;
-    else if(x != NULL && y == NULL) return -1; 
-    else if(x = NULL && y != NULL) return 1;
     return (x > y) ?  1 : -1;
 }
 
@@ -49,7 +46,6 @@ static void prueba_heap_agregar(){
 static void prueba_heap_destruir_free(){
     heap_t* heap = heap_crear((cmp_func_t)strcmp);
 
-
     char* clave1 = malloc(sizeof(char) * 10);
     char* clave2 = malloc(sizeof(char )* 10);
     char* clave3 = malloc(sizeof(char) * 10);
@@ -69,22 +65,25 @@ static void prueba_heap_destruir_free(){
 static void prueba_heap_volumen(){
     heap_t* heap = heap_crear((cmp_func_t)comparar_numeros);
     bool ok = true;
+    size_t vector[MAX_ELEMENTOS];
+    size_t i;
     print_test("Prueba heap la cantidad de elementos es 0", heap_cantidad(heap) == 0);
-    for(size_t i = 0; i < 1000; i++){
-        ok = heap_encolar(heap, &i);
-        if(!ok) break;
+    for(i = 0; i < MAX_ELEMENTOS; i++){
+        vector[i] = i;
+        ok &= heap_encolar(heap, &vector[i]);
     }
+    print_test("Prueba heap todo ok volumen", ok);
+    print_test("Prueba heap el maximo es 999", *(size_t*)heap_ver_max(heap) == 999);
     print_test("Prueba heap la cantidad de elementos es 1000", heap_cantidad(heap) == 1000);
-    for(size_t i = 0; i < 1000; i++){
+    for(size_t j = 0; j < MAX_ELEMENTOS; j++){
         heap_desencolar(heap);
     }    
-    print_test("Prueba heap la cantidad de elementos es 0", heap_cantidad(heap) == 0);
+    print_test("Prueba heap la cantidad de elementos es 0", heap_cantidad(heap) == 0); 
+    heap_destruir(heap, NULL);
 }
-
-
-
 void pruebas_heap_alumno(){
     prueba_crear_heap_vacio();
     prueba_heap_agregar();
     prueba_heap_destruir_free();
+    prueba_heap_volumen();
 }

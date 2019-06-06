@@ -1,10 +1,12 @@
 #include "heap.h"
+#include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #define TAMANIO_INICIAL 20
-#define TAMANIO_REDIMENSION 2
-#define TAMANIO_MINIMO_PARA_REDIMENSION 0.4
+#define MODIFICACION_REDIMENSION 2
+#define TAMANIO_MINIMO_AUMENTAR_REDIMENSION 1
+#define TAMANIO_MINIMO_REDUCIR_REDIMENSION 0.3
 /**********************************************************************************
  *********************      NOMBRE: MATEO FERRARI CORONEL       *******************
  *********************      PADRON: 102375                      *******************
@@ -26,15 +28,15 @@ typedef int (*cmp_func_t) (const void *a, const void *b);
 /**********************************************************************************
  *********************      FUNCIONES AUXILIARES       ****************************
  *********************************************************************************/
-bool heap_redimensionar(heap_t* heap){
-    void** vector = malloc((heap->tamanio * TAMANIO_REDIMENSION) * sizeof(void*));
+bool heap_redimensionar(heap_t* heap, size_t tamanio){
+    void** vector = realloc(heap->vector, tamanio * sizeof(void*));
     if(!vector) return false;
     heap->vector = vector;
-    heap->tamanio = (heap->tamanio * TAMANIO_REDIMENSION);
+    heap->tamanio = tamanio;
     return true;
 }
-bool check_redimension(heap_t* heap){
-    return (heap->cantidad / heap->tamanio) >= TAMANIO_MINIMO_PARA_REDIMENSION;
+float calcular_redimension(heap_t* heap){
+    return (heap->cantidad / heap->tamanio);
 }
 void swap(void** x, void** y){
     void* aux = *x;
@@ -64,7 +66,7 @@ void downheap(heap_t* heap, size_t pos){
     }
 }
 bool _heap_encolar(heap_t* heap, void* elem){
-    //if(check_redimension(heap)) if(!heap_redimensionar(heap)) return false;
+    if(calcular_redimension(heap) >= TAMANIO_MINIMO_AUMENTAR_REDIMENSION) if(!heap_redimensionar(heap, heap->tamanio * MODIFICACION_REDIMENSION)) return false;
     heap->vector[heap->cantidad] = elem;
     upheap(heap, heap->cantidad);
     heap->cantidad++;
@@ -92,6 +94,7 @@ bool heap_encolar(heap_t *heap, void *elem){
 }
 void *heap_desencolar(heap_t *heap){
     if(!heap || heap_esta_vacio(heap)) return NULL;
+    if(calcular_redimension(heap) <= TAMANIO_MINIMO_REDUCIR_REDIMENSION) if(!heap_redimensionar(heap, heap->tamanio / MODIFICACION_REDIMENSION)) return NULL;
     void* dato = heap->vector[0];
     heap->vector[0] = heap->vector[heap->cantidad - 1];
     heap->vector[heap->cantidad - 1] = NULL;
