@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-typedef struct tweet{
+typedef struct{
     char* nombre;
     int cantidad;
 }hashtag_t;
@@ -16,7 +16,9 @@ typedef struct tweet{
  *******************     FUNCIONES AUXILIARES      **********************
  ************************************************************************/
 int comparar_hashtags(hashtag_t* hashtag1, hashtag_t* hashtag2){
-    return (hashtag1->cantidad > hashtag2->cantidad) ? hashtag1->cantidad : hashtag2->cantidad;
+    if(hashtag1->cantidad > hashtag2->cantidad) return 1;
+    if(hashtag1->cantidad < hashtag2->cantidad) return -1;
+    return 0;
 }
 /************************************************************************
  *******************     FUNCIONES DE HASHING      **********************
@@ -53,18 +55,19 @@ void procesar_tweets(FILE* archivo, size_t cant_lineas, size_t tt){
     cms_t* cms = cms_crear(hashing1, hashing2, hashing3);
     if(!cms) return;
     size_t lines = 1;
-    //Relleno el hash con cada string obtenido del .txt y aplico lo mismo con cms.
     while(!feof(archivo)){
         printf("-------------------- %zd\n", lines);
         lines++;
         hash_t* hash = hash_crear(NULL);
         if(!hash) return;   
+        //Leo cada linea del archivo .txt y relleno el hash y el cms.
         for(size_t i = 0; i < cant_lineas; i++){
             char* buffer;
             size_t size = 0;
             ssize_t line = getline(&buffer, &size, archivo);
-            if(line == EOF) continue;
-            char** vector = split(buffer, ','); //Devuelve un malloc. Acordarse de un free.
+            buffer[line-1]= '\0';
+            if(line == EOF) break;
+            char** vector = split(buffer, ',');
             size_t i = 0;
             while(vector[i]){ 
                 if(!hash_pertenece(hash, vector[i])) if(hash_guardar(hash, vector[i], NULL));
@@ -76,11 +79,8 @@ void procesar_tweets(FILE* archivo, size_t cant_lineas, size_t tt){
         }
         //Recorro el hash con un iterador para hacer la fusion con el cms y generar el heap
         hash_iter_t* hash_iter = hash_iter_crear(hash);
-        if(!hash_iter){
-            hash_destruir(hash);
-            return;
-        }
         size_t cantidad_elementos = hash_cantidad(hash);
+        //Me creo un vector de hashtag_t para almacenar el nombre del hashtag (obtenido del hash) y la cantidad de apariciones de ese hashtag (obtenido del cms)
         hashtag_t** vector_hashtags = malloc(sizeof(hashtag_t*) * cantidad_elementos);
         if(!vector_hashtags) return;
         for(size_t i = 0; i < cantidad_elementos; i++){
@@ -91,11 +91,17 @@ void procesar_tweets(FILE* archivo, size_t cant_lineas, size_t tt){
             vector_hashtags[i] = hashtag;
             hash_iter_avanzar(hash_iter);
         }
+        //Una vez obtenido el vector, lo convierto a heap e imprimir el maximo cada vez que voy desencolando.
         heap_t* heap = heap_crear_arr((void**)vector_hashtags, cantidad_elementos, (cmp_func_t)comparar_hashtags);
-        while(!heap_esta_vacio(heap)){
+        size_t contador = tt;
+        while(!heap_esta_vacio(heap) && contador != 0){
             hashtag_t* elemento = heap_desencolar(heap);
             printf("Cantidad: %d - Hashtag: %s\n", elemento->cantidad, elemento->nombre);
+            contador--;
         }
+        for(size_t i = 0; i < cantidad_elementos; i++) free(vector_hashtags[i]);
+        free(vector_hashtags);
+        heap_destruir(heap, NULL);
         hash_iter_destruir(hash_iter);
         hash_destruir(hash);
     }

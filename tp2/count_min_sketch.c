@@ -9,7 +9,7 @@
  *******************     ESTRUCTURA DE DATOS      ***********************
  ************************************************************************/
 struct cms{
-    size_t** vector;
+    int** vector;
     size_t tamanio;
     hashing_funcion_t func1;
     hashing_funcion_t func2;
@@ -18,21 +18,21 @@ struct cms{
 /************************************************************************
  *******************     FUNCIONES AUXILIARES      **********************
  ************************************************************************/
-bool rellenar_vector_cms(void** vector_vectores){
+bool rellenar_vector_cms(int** vector_vectores){
     if(!vector_vectores) return false;
     for(size_t i = 0; i < CANTIDAD_FUNCIONES_HASHING; i++){
-        size_t* vector = calloc(TAMANIO_INICIAL, sizeof(size_t));
+        int* vector = calloc(TAMANIO_INICIAL, sizeof(int));
         if(!vector) return false;
         vector_vectores[i] = vector;
     }
     return true;
 }
-void aumentar_contador(size_t* vector, char* clave, hashing_funcion_t func){
+void aumentar_contador(int* vector, char* clave, hashing_funcion_t func){
     size_t pos_obtenida = func(clave, TAMANIO_INICIAL);
     vector[pos_obtenida]++;
 }
-void encontrar_minima_aparicion(char* clave, size_t tamanio, int* min, size_t* vector, hashing_funcion_t func){
-    size_t contador = vector[func(clave, tamanio)];
+void encontrar_minima_aparicion(char* clave, size_t tamanio, int* min, int* vector, hashing_funcion_t func){
+    int contador = vector[func(clave, tamanio)];
     if(contador < *min) *min = contador;
 }
 /************************************************************************
@@ -42,7 +42,7 @@ cms_t* cms_crear(hashing_funcion_t func1, hashing_funcion_t func2, hashing_funci
     if(!func1 || !func2 || !func3) return NULL;
     cms_t* cms = malloc(sizeof(cms_t));
     if(!cms) return NULL;
-    size_t** vector = malloc(sizeof(size_t*) * CANTIDAD_FUNCIONES_HASHING);
+    int** vector = malloc(sizeof(int*) * CANTIDAD_FUNCIONES_HASHING);
     if(!rellenar_vector_cms(vector)) return NULL;
     cms->vector = vector;
     cms->tamanio = TAMANIO_INICIAL;
@@ -53,7 +53,6 @@ cms_t* cms_crear(hashing_funcion_t func1, hashing_funcion_t func2, hashing_funci
 }
 bool cms_insertar(cms_t* cms, char* clave){
     if(!cms || !clave) return false;
-    size_t tamanio = cms->tamanio;
     aumentar_contador(cms->vector[0], clave, cms->func1);
     aumentar_contador(cms->vector[1], clave, cms->func2);
     aumentar_contador(cms->vector[2], clave, cms->func3);
