@@ -11,7 +11,7 @@
 #include "cola.h"
 #define TIME_FORMAT "%FT%T%z"
 #define CANTIDAD_POSIBLE_DOS 5
-#define MAXIMO_INDICE_IPS_SPLITEADO 3
+#define MAXIMO_INDICE_IPS_SPLITEADO 4
 
 typedef struct{
     size_t cantidad;
@@ -28,13 +28,22 @@ bool es_valida(char* ip, char* rango_inicial, char* rango_final){
     char** rango_inicial_spliteado = split(rango_inicial, '.');
     char** rango_final_spliteado = split(rango_final, '.');
     char** ip_spliteada = split(ip, '.');
+    printf("\n");
+    printf("IP: %s\n", ip);
+    printf("Rango Inicial: %s\n", rango_inicial);
+    printf("Rango Final: %s\n", rango_final);    
     for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
         int ip_valor = atoi(ip_spliteada[i]);
         int rango_inicial_valor = atoi(rango_inicial_spliteado[i]);
         int rango_final_valor = atoi(rango_final_spliteado[i]);
-        if(ip_valor >= rango_inicial_valor && ip_valor <= rango_final_valor) return true;
+        if(ip_valor < rango_inicial_valor || ip_valor > rango_final_valor){
+            printf("Rechazado\n");
+            return false;
+        }    
     }
-    return false;
+    printf("Aceptado\n");
+    printf("\n");
+    return true;
 }
 
 void agregar_archivo(char* nombre_archivo){
