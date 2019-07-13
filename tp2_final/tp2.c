@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include "strutil.h"
 #include "lista.h"
@@ -10,6 +11,7 @@
 #include "cola.h"
 #define TIME_FORMAT "%FT%T%z"
 #define CANTIDAD_POSIBLE_DOS 5
+#define MAXIMO_INDICE_IPS_SPLITEADO 3
 
 typedef struct{
     size_t cantidad;
@@ -20,6 +22,19 @@ time_t iso8601_to_time(char* iso8601){
     struct tm bktime = { 0 };
     strptime(iso8601, TIME_FORMAT, &bktime);
     return mktime(&bktime);
+}
+
+bool es_valida(char* ip, char* rango_inicial, char* rango_final){
+    char** rango_inicial_spliteado = split(rango_inicial, '.');
+    char** rango_final_spliteado = split(rango_final, '.');
+    char** ip_spliteada = split(ip, '.');
+    for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
+        int ip_valor = atoi(ip_spliteada[i]);
+        int rango_inicial_valor = atoi(rango_inicial_spliteado[i]);
+        int rango_final_valor = atoi(rango_final_spliteado[i]);
+        if(ip_valor >= rango_inicial_valor && ip_valor <= rango_final_valor) return true;
+    }
+    return false;
 }
 
 void agregar_archivo(char* nombre_archivo){
@@ -69,7 +84,53 @@ void agregar_archivo(char* nombre_archivo){
     fclose(archivo);
 }
 
-int main(int argc, char const *argv[]){
-    agregar_archivo("access001.log"); 
+void ver_visitantes(char* rango_inicial, char* rang_final){
+    FILE* archivo = fopen("access001.log", "r");
+    if(!archivo) return;
+    char* buffer = NULL, *ip_actual;
+    char** buffer_spliteado;
+    size_t tamanio = 0;
+    ssize_t linea;
+    hash_t* ips_validas = hash_crear(NULL);
+    while(!feof(archivo)){
+        linea = getline(&buffer, &tamanio, archivo);
+        if(linea == EOF) break;
+        buffer[linea - 1] = '\0';
+        buffer_spliteado = split(buffer, '\t');
+        ip_actual = buffer_spliteado[0];
+        if(es_valida(ip_actual, rango_inicial, rang_final)){  //Valida que la ip actual procesada esté en el rango correspondiente.
+            if(!hash_pertenece(ips_validas, ip_actual)) hash_guardar(ips_validas, ip_actual, NULL);
+        }
+        free_strv(buffer_spliteado);
+    }
+    hash_iter_t* iter = hash_iter_crear(ips_validas);
+    printf("Visitantes:\n");
+    while(!hash_iter_al_final(iter)){
+        printf("\t%s\n", hash_iter_ver_actual(iter));
+        hash_iter_avanzar(iter);
+    }
+    hash_iter_destruir(iter);
+    free(buffer);
+    fclose(archivo);
+}
+
+void menu(char** input){
+    char* comando, *parametro1, *parametro2;
+    if(input[1]) comando = input[1]; //Comando a ejectuar
+    if(input[2]) parametro1 = input[2]; //Posible parametro pasado. Ejemplo: ip_inicial (ver_visitantes()).
+    if(input[3]) parametro2 = input[3]; //Posible parametro pasado. Ejemplo: ip_final (ver_visitantes()).
+
+    if(strcmp(comando, "agregar_archivo") == 0) agregar_archivo(parametro1);
+    else if(strcmp(comando, "ver_visitantes") == 0) ver_visitantes(parametro1, parametro2);
+    else if(strcmp(comando, "ver_mas_visitados") == 0); //
+    else{
+        fprintf(stderr, "Error en comando %s", comando);
+        return;
+    }
+    printf("OK");
+}
+
+int main(int argc, char *argv[]){
+    menu(argv);
     return 0;
 }
