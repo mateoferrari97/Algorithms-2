@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "strutil.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
