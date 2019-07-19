@@ -28,7 +28,7 @@ typedef struct{
 
 typedef struct{
     size_t cant_llamados;
-    char* sitio
+    char* sitio;
 }tupla_sitios_t;
 
 
@@ -39,48 +39,67 @@ time_t iso8601_to_time(char* iso8601){
 }
 
 int comparar_numeros(tupla_sitios_t* x,tupla_sitios_t* y){
-    return (x->cant_llamados > y->cant_llamados) ?  1 : -1;
+    return (x->cant_llamados >= y->cant_llamados) ?  1 : -1;
 }
 
-
-
-/* esto supongo que vuela pero por si acaso lo dejo         TODO
-
-bool es_valida(char* ip, char* rango_inicial, char* rango_final){
-    char** rango_inicial_spliteado = split(rango_inicial, '.');
-    char** rango_final_spliteado = split(rango_final, '.');
-    char** ip_spliteada = split(ip, '.');
-    printf("\n");
-    printf("IP: %s\n", ip);
-    printf("Rango Inicial: %s\n", rango_inicial);
-    printf("Rango Final: %s\n", rango_final);    
+int comparar_ips(char* ip1, char* ip2){
+    char** ip1_split = split(ip1, '.');
+    char** ip2_split = split(ip2, '.');
+    int respuesta = 0;
     for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
-        int ip_valor = atoi(ip_spliteada[i]);
-        int rango_inicial_valor = atoi(rango_inicial_spliteado[i]);
-        int rango_final_valor = atoi(rango_final_spliteado[i]);
-        if(ip_valor < rango_inicial_valor || ip_valor > rango_final_valor){
-            printf("Rechazado\n");
-            return false;
-        }    
+        int ip1_atoi = atoi(ip1_split[i]);
+        int ip2_atoi = atoi(ip2_split[i]);
+        if(ip1_atoi < ip2_atoi){
+            respuesta = -1;
+            break;
+        }
+        if(ip1_atoi > ip2_atoi){
+            respuesta = 1;
+            break;            
+        }
     }
-    printf("Aceptado\n");
-    printf("\n");
-    return true;
+    free_strv(ip1_split);
+    free_strv(ip2_split);    
+    if(respuesta == 0) return 0;
+    return respuesta;
 }
-*/
 
-void agregar_archivo(char* nombre_archivo,hash_t* ips, hash_t* sitios){
+//Funcion auxiliar que checkea si el ip pasado como parametro esta en el rango inicial y final.
+// bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
+//     char** rango_inicial_spliteado = split(rango_inicial, '.');
+//     char** rango_final_spliteado = split(rango_final, '.');
+//     char** ip_actual_spliteado = split(ip_actual, '.');
+//     char* ip_actual_aux = malloc(sizeof(char) * 12);
+//     char* rango_inicial_aux = malloc(sizeof(char) * 12);
+//     char* rango_final_aux = malloc(sizeof(char) * 12);
+//     for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
+//         strcat(ip_actual_aux, ip_actual_spliteado[i]);
+//         strcat(rango_inicial_aux, rango_inicial_spliteado[i]);
+//         strcat(rango_final_aux, rango_final_spliteado[i]);
+//     }
+//     printf("Actual: %s\n", ip_actual_aux);
+//     printf("Inicial: %s\n", rango_inicial_aux);
+//     printf("Final: %s\n", rango_final_aux);
+//     free_strv(rango_inicial_spliteado);
+//     free_strv(rango_final_spliteado);
+//     free_strv(ip_actual_spliteado);
+//     return true;
+// }
+
+bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
-    if(!archivo) return NULL;
+    if(!archivo) return false;
     hash_t* ips_dos = hash_crear(NULL);
-    if(!ips_dos) return NULL;
+    if(!ips_dos) return false;
 
     char* buffer = NULL;
     char** buffer_spliteado;
     size_t tamanio = 0;
-
+    ssize_t linea;
+    char* ips_dos_ordenadas[1000];
+    size_t pos = 0;
     while(!feof(archivo)){
-        ssize_t linea = getline(&buffer, &tamanio, archivo);
+        linea = getline(&buffer, &tamanio, archivo);
         if(linea == EOF) break;
         buffer[linea - 1] = '\0';
         buffer_spliteado = split(buffer, '\t');
@@ -89,6 +108,7 @@ void agregar_archivo(char* nombre_archivo,hash_t* ips, hash_t* sitios){
         char* sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
 
+        //free_strv(buffer_spliteado);
         //Guardamos la IP en ips(hash) y verificamos si hay o no un DOS
         if(!hash_pertenece(ips, ip_actual)){
             cola_ips_t* cola_ip = malloc(sizeof(cola_ips_t));
@@ -102,162 +122,147 @@ void agregar_archivo(char* nombre_archivo,hash_t* ips, hash_t* sitios){
             cola_ip->cantidad++;
             if(cola_ip->cantidad >= 5){
                 if(difftime(tiempo_actual, (time_t)cola_ver_primero(cola_ip->tiempos)) <= 2){
-                    cola_desencolar(cola_ip->tiempos);
-                    if(!hash_pertenece(ips_dos, ip_actual)) hash_guardar(ips_dos, ip_actual, NULL);
+                    if(!hash_pertenece(ips_dos, ip_actual)){
+                        hash_guardar(ips_dos, ip_actual, NULL);
+                        //En caso de ser DoS, lo inserto en un arreglo para ordenarlo al final e imprimirlo.
+                        ips_dos_ordenadas[pos] = ip_actual;
+                        pos++;
+                    }
                 }
+                cola_desencolar(cola_ip->tiempos);
             }
+            hash_guardar(ips, ip_actual, cola_ip);
         }
 
-        //Guardamos el sitio en sitios(sitios) y aumentamos la cantidad de apareciones en 1 si ya se encontraba
-        cantidad = hash_obtener(sitios, sitio_actual);
-        if(!cantidad){
-            hash_guardar(sitios, sitio_actual, 1);
+        //Mantenemos el hash de sitios actualizado.En caso de no existir el sitio, lo agregamos como clave y valor la cantidad. Si existe, cantidad++.
+        if(!hash_pertenece(sitios, sitio_actual)){
+            size_t* cantidad = malloc(sizeof(size_t));
+            *cantidad = 1;
+            hash_guardar(sitios, sitio_actual, cantidad);
+        }else{
+            size_t* cantidad = hash_obtener(sitios, sitio_actual);
+            (*cantidad)++;
+            hash_guardar(sitios, sitio_actual, cantidad);
         }
-        else{
-            cantidad++;
-            hash_guardar(sitios, sitio_actual, cantidad)
+        //Mantenemos el abb actualizado. Como usamos un abb, va a estar ordenado.
+        if(!abb_pertenece(visitantes, ip_actual)){
+            char* ip = malloc(sizeof(char));
+            ip = ip_actual;
+            abb_guardar(visitantes, ip, NULL);
         }
     }
 
-
-    //Iteramos el hash DoS y vamos imprimiendo las ips
-    hash_iter_t* hash_iter = hash_iter_crear(ips_dos);
-    while(!hash_iter_al_final(hash_iter)){
-        fprintf(stdout, "DoS:  %s\n", hash_iter_ver_actual(hash_iter));
-        hash_iter_avanzar(hash_iter);
-    }
-    hash_iter_destruir(hash_iter)
+    //Imprimo las ips que son posibles DoS.
+    for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
     hash_destruir(ips_dos);
+
+
+
     fclose(archivo);
+    return true;
 }
 
-
-/* Te la dejo a vos para que la hagas jaja, yo no le entendi a Martin lo que puso.      TODO
-
-void ver_visitantes(char* rango_inicial, char* rang_final){
-    FILE* archivo = fopen("access001.log", "r");
-    if(!archivo) return;
-    char* buffer = NULL, *ip_actual;
-    char** buffer_spliteado;
-    size_t tamanio = 0;
-    ssize_t linea;
-    hash_t* ips_validas = hash_crear(NULL);
-    while(!feof(archivo)){
-        linea = getline(&buffer, &tamanio, archivo);
-        if(linea == EOF) break;
-        buffer[linea - 1] = '\0';
-        buffer_spliteado = split(buffer, '\t');
-        ip_actual = buffer_spliteado[0];
-        if(es_valida(ip_actual, rango_inicial, rang_final)){  //Valida que la ip actual procesada esté en el rango correspondiente.
-            if(!hash_pertenece(ips_validas, ip_actual)) hash_guardar(ips_validas, ip_actual, NULL);
-        }
-        free_strv(buffer_spliteado);
-    }
-    hash_iter_t* iter = hash_iter_crear(ips_validas);
+//En esta funcion nos encargamos de recorrer el abb de visitados con un iterador interno  de tal manera que los visitantes que van a ser imprimidos son aquellos que esten en el rango pasado por parametro.
+bool ver_visitantes(abb_t* visitantes, char* rango_inicial, char* rango_final){
+    abb_iter_t* abb_iter = abb_iter_in_crear(visitantes);
+    if(!abb_iter) return false;
     printf("Visitantes:\n");
-    while(!hash_iter_al_final(iter)){
-        printf("\t%s\n", hash_iter_ver_actual(iter));
-        hash_iter_avanzar(iter);
+    while(!abb_iter_in_al_final(abb_iter)){
+        char* ip_actual = (char*)abb_iter_in_ver_actual(abb_iter);
+        //if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
+        abb_iter_in_avanzar(abb_iter);
     }
-    hash_iter_destruir(iter);
-    free(buffer);
-    fclose(archivo);
+    abb_iter_in_destruir(abb_iter);
+    return true;
 }
 
-*/
-
-
-void ver_mas_visitados(int n_mas_solicitados, hash_t* sitios){
+bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
     // Creo el heap y el iter que vamos a usar
-    heap_t* heap_aux = heap_crear((cmp_func_t)comparar_numeros);
-    if(!heap_aux)return NULL;
+    heap_t* heap_aux = heap_crear((cmp_func_t )comparar_numeros);
+    if(!heap_aux) return false;
     hash_iter_t* hash_iter = hash_iter_crear(sitios);
     if(!hash_iter){
         heap_destruir(heap_aux,NULL);
-        return NULL;
+        return false;
     }
-    // Arranco a iterar el hash
-    while(!hash_iter_al_final(hash_iter)){
-        char* sitio_actual = hash_iter_ver_actual(hash_iter));
-        int cant_llamados_actual = hash_obtener(sitios, sitio);
-
-        // Si el heap tiene n elementos entonces comparamos el tope con el actual
-        if(heap_cantidad(heap_aux) == n_mas_solicitados){
-            tupla_sitios_t* tope = heap_ver_max(heap_aux);
-            if(cant_llamados_actual > tope->cant_llamados){
-                free(heap_desencolar(heap_aux));
-                tupla_sitios_t* actual = malloc(sizeof(tupla_sitios_t));
-                if(!actual){
-                    heap_destruir(heap_aux,free);
-                    hash_iter_destruir(hash_iter);
-                    return NULL;
-                }
-                actual->cant_llamados = cant_llamados_actual;
-                actual->sitio = sitio_actual;
-                heap_encolar(heap_aux, actual);
-            }
-        }
-        // Si no llega a n elementos entonces encolamos el actual de una
-        else{
-            tupla_sitios_t* actual = malloc(sizeof(tupla_sitios_t));
-            if(!actual){
-                heap_destruir(heap_aux,free);
-                hash_iter_destruir(hash_iter);
-                return NULL;
-            }
-            actual->cant_llamados = cant_llamados_actual;
-            actual->sitio = sitio_actual;
-            heap_encolar(heap_aux, actual);
-        }
+    //Completo el heap con los primeros n_mas_solicitados.
+    for(size_t i = 0; i < n_mas_solicitados && !hash_iter_al_final(hash_iter); i++){
+        char* sitio_actual = (char*)hash_iter_ver_actual(hash_iter);
+        size_t cant_llamados_actual = *((size_t*)hash_obtener(sitios, sitio_actual));
+        tupla_sitios_t* tupla_sitio =  malloc(sizeof(tupla_sitios_t));
+        tupla_sitio->cant_llamados = cant_llamados_actual;
+        tupla_sitio->sitio = sitio_actual;
+        heap_encolar(heap_aux, tupla_sitio);
         hash_iter_avanzar(hash_iter);
     }
-
-    hash_iter_destruir(hash_iter)
-    // Ordernar el heap, luego recorrerlo e imprimirlo          TODO    
+    //Una vez que tengo el heap con k elementos, voy avanzando el hash_iter y comparando el actual con el min del heap. En caso de ser mayor el actual, desencolo el min del heap y encolo el actual del hash_iter.
+    while(!hash_iter_al_final(hash_iter)){
+        char* sitio_actual = (char*)hash_iter_ver_actual(hash_iter);
+        size_t cant_llamados_actual = *((size_t*)hash_obtener(sitios, sitio_actual));
+        tupla_sitios_t* tupla_sitio = malloc(sizeof(tupla_sitios_t));
+        tupla_sitio->sitio = sitio_actual;
+        tupla_sitio->cant_llamados = cant_llamados_actual;
+        if(comparar_numeros(heap_ver_max(heap_aux), tupla_sitio) == -1){ //En caso de que el min_heap sea menor a el actual, desencolo el min_heap y encolo el actual.
+            free(heap_desencolar(heap_aux));
+            heap_encolar(heap_aux, tupla_sitio);
+        }else{
+            free(tupla_sitio);
+        };
+        hash_iter_avanzar(hash_iter);
     }
+    hash_iter_destruir(hash_iter);
+    //Al tener el heap completo, voy desencolando e imprimiendo sus valores.
+    printf("Sitios mas visitados:\n");
+    while(!heap_esta_vacio(heap_aux)){
+        tupla_sitios_t* tupla = heap_desencolar(heap_aux);
+        printf("\t%s - %zd\n", tupla->sitio, tupla->cant_llamados);
+        free(tupla);
+    }
+    heap_destruir(heap_aux, NULL);
+    // hash_iter_destruir(hash_iter);
+    // Ordernar el heap, luego recorrerlo e imprimirlo TODO
+    return true;
 }
 
 
-int main(){
+int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
-    hash_t* ips = hash_crear(/*necesitamos una func de destruccion para el struc de cola_ips   TODO */);
-    if(!ips) return 0
+    hash_t* ips = hash_crear(NULL);/*necesitamos una func de destruccion para el struc de cola_ips   TODO */;
+    if(!ips) return 0;
     hash_t* sitios = hash_crear(NULL);
     if(!sitios){
         hash_destruir(ips);
-        return 0
+        return 0;
     }
-    // abb_t* abb_visitados = abb_crear(comparar_ips,NULL) se necesita al final o no?     TODO
-    
+    abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,NULL);
+    char* buffer = NULL;
+    size_t tamanio = 0;
+    ssize_t linea;
     bool error = false;
-    char linea[1000]; // Esto seguro es una villereada o directamente no anda.       TODO
-    while(fgets(linea, 1000, stdin)){
+    while(!feof(stdin)){
+        linea = getline(&buffer, &tamanio, stdin);
+        if(linea == EOF) break;
+        if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
+        char** comandos = split(buffer, ' ');
+        if(strcmp(comandos[0], "agregar_archivo") == 0){
+            if(!agregar_archivo(comandos[1], ips, sitios, abb_visitados)) error = true;            
+        }
+        if(strcmp(comandos[0], "ver_mas_visitados") == 0){
+            if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
+        }
+        else if(strcmp(comandos[0], "ver_visitantes") == 0){
+            if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;
+        }
 
-        // Spliteamos la linea, comando[0] va a ser el comando en si, el 1 y el 2 son los parametros
-        char** comando = split(linea, " "); 
-        if(strcmp(comando[0], "agregar_archivo")==0){
-            if(!agregar_archivo(comando[1], ips, sitios, abb?))error = true;            
-        }
-        else if(strcmp(comando[0], "ver_visitantes")==0){
-            if(!ver_visitantes(comando[1],comando[2], ips))error = true;
-        }
-        else if(strcmp(comando[0], "ver_mas_visitados")==0){
-            if(!ver_mas_visitados(atoi(comando[1]),sitios))error = true;
-        }
-
-        else{ // Si pasaron un comando invalido terminamos el programa
-            fprintf(stderr, "Error en comando %s", comando[0]);
-            hash_destruir(ips);
-            hash_destruir(sitios, NULL);
-            return 0;
-        }
-        // Si hubo algun error en los comandos terminamos el programa
+        // Si hubo algun error en los comandoss terminamos el programa
         if(error){
-            fprintf(stderr, "Error en comando %s", comando[0]);
+            fprintf(stderr, "Error en comandos %s", comandos[0]);
             hash_destruir(ips);
             hash_destruir(sitios);
             return 0;
         }
-        fprintf(stdout, "OK");
+        fprintf(stdout, "OK\n");
+        free_strv(comandos);
     }
+    free(buffer);
 }
