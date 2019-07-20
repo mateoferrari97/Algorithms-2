@@ -65,26 +65,26 @@ int comparar_ips(char* ip1, char* ip2){
 }
 
 //Funcion auxiliar que checkea si el ip pasado como parametro esta en el rango inicial y final.
-// bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
-//     char** rango_inicial_spliteado = split(rango_inicial, '.');
-//     char** rango_final_spliteado = split(rango_final, '.');
-//     char** ip_actual_spliteado = split(ip_actual, '.');
-//     char* ip_actual_aux = malloc(sizeof(char) * 12);
-//     char* rango_inicial_aux = malloc(sizeof(char) * 12);
-//     char* rango_final_aux = malloc(sizeof(char) * 12);
-//     for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
-//         strcat(ip_actual_aux, ip_actual_spliteado[i]);
-//         strcat(rango_inicial_aux, rango_inicial_spliteado[i]);
-//         strcat(rango_final_aux, rango_final_spliteado[i]);
-//     }
-//     printf("Actual: %s\n", ip_actual_aux);
-//     printf("Inicial: %s\n", rango_inicial_aux);
-//     printf("Final: %s\n", rango_final_aux);
-//     free_strv(rango_inicial_spliteado);
-//     free_strv(rango_final_spliteado);
-//     free_strv(ip_actual_spliteado);
-//     return true;
-// }
+bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
+    char** rango_inicial_spliteado = split(rango_inicial, '.');
+    char** rango_final_spliteado = split(rango_final, '.');
+    char** ip_actual_spliteado = split(ip_actual, '.');
+    int suma_actual = 0;
+    int suma_tope = 0;
+    for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
+        int base = atoi(rango_inicial_spliteado[i]); 
+        int actual = atoi(ip_actual_spliteado[i]) + suma_actual;
+        int tope = atoi(rango_final_spliteado[i]) + suma_tope;
+        if(i == 3 && base == actual && actual == tope) return true;
+        if(actual < base || actual > tope) return false;
+        if ((actual >= base && actual < tope) || (actual > base && actual <= tope) ) return true;
+        suma_actual = (actual - base)*255;
+        suma_tope = (tope - base)*255;
+    }
+    return false;
+}
+
+
 
 bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
@@ -169,7 +169,7 @@ bool ver_visitantes(abb_t* visitantes, char* rango_inicial, char* rango_final){
     printf("Visitantes:\n");
     while(!abb_iter_in_al_final(abb_iter)){
         char* ip_actual = (char*)abb_iter_in_ver_actual(abb_iter);
-        //if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
+        if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
         abb_iter_in_avanzar(abb_iter);
     }
     abb_iter_in_destruir(abb_iter);

@@ -1,3 +1,5 @@
 agregar_archivo access001.log
 ver_mas_visitados 15
-ver_visitantes 62.00.00.00 150.00.00.00
+ver_visitantes 46.32.254.207 46.32.254.207
+
+
