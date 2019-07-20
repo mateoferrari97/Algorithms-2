@@ -1,5 +1,10 @@
 agregar_archivo access001.log
+agregar_archivo access002.log
+ver_visitantes 60.00.00.00 80.00.00.00
+ver_mas_visitados 5
+agregar_archivo access003.log
+ver_visitantes 00.00.00.00 50.00.00.00
+agregar_archivo access004.log
 ver_mas_visitados 15
-ver_visitantes 46.32.254.207 46.32.254.207
-
-
+ver_visitantes 60.00.00.00 70.00.00.00
+ver_mas_visitados 3

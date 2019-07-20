@@ -38,8 +38,35 @@ time_t iso8601_to_time(char* iso8601){
     return mktime(&bktime);
 }
 
+void destruir_cola_ips(cola_ips_t* dato){
+    cola_destruir(dato->tiempos, NULL);
+    free(dato);
+}
+
 int comparar_numeros(tupla_sitios_t* x,tupla_sitios_t* y){
     return (x->cant_llamados >= y->cant_llamados) ?  1 : -1;
+}
+
+//Funcion auxiliar que checkea si el ip pasado como parametro esta en el rango inicial y final.
+bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
+    char** rango_inicial_spliteado = split(rango_inicial, '.');
+    char** rango_final_spliteado = split(rango_final, '.');
+    char** ip_actual_spliteado = split(ip_actual, '.');
+    int suma_actual = 0;
+    int suma_tope = 0;
+    for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
+        int base = atoi(rango_inicial_spliteado[i]); 
+        int actual = atoi(ip_actual_spliteado[i]) + suma_actual;
+        int tope = atoi(rango_final_spliteado[i]) + suma_tope;
+        if(actual < base || actual > tope) return false;
+        if(i == 3 && base == actual && actual == tope) return true;
+        suma_actual = (actual - base)*255;
+        suma_tope = (tope - base)*255;
+    }
+    free_strv(rango_inicial_spliteado);
+    free_strv(rango_final_spliteado);
+    free_strv(ip_actual_spliteado);
+    return true;
 }
 
 int comparar_ips(char* ip1, char* ip2){
@@ -55,36 +82,27 @@ int comparar_ips(char* ip1, char* ip2){
         }
         if(ip1_atoi > ip2_atoi){
             respuesta = 1;
-            break;            
+            break;
         }
     }
     free_strv(ip1_split);
-    free_strv(ip2_split);    
+    free_strv(ip2_split);
     if(respuesta == 0) return 0;
     return respuesta;
 }
 
-//Funcion auxiliar que checkea si el ip pasado como parametro esta en el rango inicial y final.
-bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
-    char** rango_inicial_spliteado = split(rango_inicial, '.');
-    char** rango_final_spliteado = split(rango_final, '.');
-    char** ip_actual_spliteado = split(ip_actual, '.');
-    int suma_actual = 0;
-    int suma_tope = 0;
-    for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
-        int base = atoi(rango_inicial_spliteado[i]); 
-        int actual = atoi(ip_actual_spliteado[i]) + suma_actual;
-        int tope = atoi(rango_final_spliteado[i]) + suma_tope;
-        if(i == 3 && base == actual && actual == tope) return true;
-        if(actual < base || actual > tope) return false;
-        if ((actual >= base && actual < tope) || (actual > base && actual <= tope) ) return true;
-        suma_actual = (actual - base)*255;
-        suma_tope = (tope - base)*255;
+void bubbleSort(char** arr, size_t n){
+    size_t i = 0, j = 0;
+    for(i = 0; i < n - 1; i++){
+        for(j = 0; j < n - i - 1; j++){
+            if(comparar_ips(arr[j], arr[j+1]) > 0){
+                char* aux = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = aux;
+            };
+        }
     }
-    return false;
 }
-
-
 
 bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
@@ -108,7 +126,6 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
         char* sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
 
-        //free_strv(buffer_spliteado);
         //Guardamos la IP en ips(hash) y verificamos si hay o no un DOS
         if(!hash_pertenece(ips, ip_actual)){
             cola_ips_t* cola_ip = malloc(sizeof(cola_ips_t));
@@ -150,13 +167,15 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             ip = ip_actual;
             abb_guardar(visitantes, ip, NULL);
         }
+        //free_strv(buffer_spliteado);
     }
 
+
+    size_t maximo_logico = pos;
+    bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.
     for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
     hash_destruir(ips_dos);
-
-
 
     fclose(archivo);
     return true;
@@ -224,7 +243,6 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
     return true;
 }
 
-
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
     hash_t* ips = hash_crear(NULL);/*necesitamos una func de destruccion para el struc de cola_ips   TODO */;
@@ -250,19 +268,20 @@ int main(int argc, char* argv[]){
         if(strcmp(comandos[0], "ver_mas_visitados") == 0){
             if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
         }
-        else if(strcmp(comandos[0], "ver_visitantes") == 0){
+        if(strcmp(comandos[0], "ver_visitantes") == 0){
             if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;
         }
-
-        // Si hubo algun error en los comandoss terminamos el programa
         if(error){
             fprintf(stderr, "Error en comandos %s", comandos[0]);
-            hash_destruir(ips);
-            hash_destruir(sitios);
-            return 0;
+            free_strv(comandos);
+            break;
         }
+        // Si hubo algun error en los comandoss terminamos el programa
         fprintf(stdout, "OK\n");
         free_strv(comandos);
     }
+    abb_destruir(abb_visitados);
+    hash_destruir(ips);
+    hash_destruir(sitios);
     free(buffer);
 }
