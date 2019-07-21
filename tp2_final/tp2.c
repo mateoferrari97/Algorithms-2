@@ -44,7 +44,7 @@ void destruir_cola_ips(cola_ips_t* dato){
 }
 
 int comparar_numeros(tupla_sitios_t* x,tupla_sitios_t* y){
-    return (x->cant_llamados >= y->cant_llamados) ?  1 : -1;
+    return (x->cant_llamados >= y->cant_llamados) ?  -1 : 1;
 }
 
 //Funcion auxiliar que checkea si el ip pasado como parametro esta en el rango inicial y final.
@@ -111,16 +111,15 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     if(!ips_dos) return false;
 
     char* buffer = NULL;
-    char** buffer_spliteado;
     size_t tamanio = 0;
     ssize_t linea;
     char* ips_dos_ordenadas[1000];
     size_t pos = 0;
     while(!feof(archivo)){
         linea = getline(&buffer, &tamanio, archivo);
-        if(linea == EOF) break;
         buffer[linea - 1] = '\0';
-        buffer_spliteado = split(buffer, '\t');
+        if(linea == EOF) break;
+        char** buffer_spliteado = split(buffer, '\t');
 
         char* ip_actual = buffer_spliteado[0];
         char* sitio_actual = buffer_spliteado[3];
@@ -174,7 +173,7 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     size_t maximo_logico = pos;
     bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.
-    for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
+    //for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
     hash_destruir(ips_dos);
 
     fclose(archivo);
@@ -204,8 +203,8 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
         heap_destruir(heap_aux,NULL);
         return false;
     }
-    //Completo el heap con los primeros n_mas_solicitados.
-    for(size_t i = 0; i < n_mas_solicitados && !hash_iter_al_final(hash_iter); i++){
+    // //Completo el heap con los primeros n_mas_solicitados.
+    for(size_t i = 0; i < n_mas_solicitados; i++){
         char* sitio_actual = (char*)hash_iter_ver_actual(hash_iter);
         size_t cant_llamados_actual = *((size_t*)hash_obtener(sitios, sitio_actual));
         tupla_sitios_t* tupla_sitio =  malloc(sizeof(tupla_sitios_t));
@@ -221,12 +220,12 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
         tupla_sitios_t* tupla_sitio = malloc(sizeof(tupla_sitios_t));
         tupla_sitio->sitio = sitio_actual;
         tupla_sitio->cant_llamados = cant_llamados_actual;
-        if(comparar_numeros(heap_ver_max(heap_aux), tupla_sitio) == -1){ //En caso de que el min_heap sea menor a el actual, desencolo el min_heap y encolo el actual.
-            free(heap_desencolar(heap_aux));
-            heap_encolar(heap_aux, tupla_sitio);
-        }else{
-            free(tupla_sitio);
-        };
+        // if(comparar_numeros(heap_ver_max(heap_aux), tupla_sitio) == -1){ //En caso de que el min_heap sea menor a el actual, desencolo el min_heap y encolo el actual.
+        //     heap_desencolar(heap_aux);
+             heap_encolar(heap_aux, tupla_sitio);
+        // }else{
+        //     free(tupla_sitio);
+        // };
         hash_iter_avanzar(hash_iter);
     }
     hash_iter_destruir(hash_iter);
@@ -238,8 +237,6 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
         free(tupla);
     }
     heap_destruir(heap_aux, NULL);
-    // hash_iter_destruir(hash_iter);
-    // Ordernar el heap, luego recorrerlo e imprimirlo TODO
     return true;
 }
 
