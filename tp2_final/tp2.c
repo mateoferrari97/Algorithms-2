@@ -4,21 +4,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "pila.h"
 #include "abb.h"
 #include "cola.h"
 #include "hash.h"
 #include "heap.h"
 #include "strutil.h"
 #define TIME_FORMAT "%FT%T%z"
-#define CANTIDAD_POSIBLE_DOS 5
 #define MAXIMO_INDICE_IPS_SPLITEADO 4
-
-
-/* 
-Para buscar los "errores" o temas a tener en cuenta hacer un CTRL+F y buscar 'TODO'.
-Basicamente faltaria hacer el ver_visitantes, el tema de ordenar el heap en ver_mas_visitados, ver que onda 
-la funcion de destruccion del struct cola_ips y alguna que otra boludez mas.  
-*/
 
 typedef struct{
     size_t cantidad;
@@ -109,7 +102,6 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     if(!archivo) return false;
     hash_t* ips_dos = hash_crear(NULL);
     if(!ips_dos) return false;
-
     char* buffer = NULL;
     size_t tamanio = 0;
     ssize_t linea;
@@ -117,10 +109,9 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     size_t pos = 0;
     while(!feof(archivo)){
         linea = getline(&buffer, &tamanio, archivo);
-        buffer[linea - 1] = '\0';
+        if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
         if(linea == EOF) break;
         char** buffer_spliteado = split(buffer, '\t');
-
         char* ip_actual = buffer_spliteado[0];
         char* sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
@@ -169,13 +160,12 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
         //free_strv(buffer_spliteado);
     }
 
-
     size_t maximo_logico = pos;
     bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.
-    //for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
+    for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
     hash_destruir(ips_dos);
-
+    free(buffer);
     fclose(archivo);
     return true;
 }
@@ -220,22 +210,29 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
         tupla_sitios_t* tupla_sitio = malloc(sizeof(tupla_sitios_t));
         tupla_sitio->sitio = sitio_actual;
         tupla_sitio->cant_llamados = cant_llamados_actual;
-        // if(comparar_numeros(heap_ver_max(heap_aux), tupla_sitio) == -1){ //En caso de que el min_heap sea menor a el actual, desencolo el min_heap y encolo el actual.
-        //     heap_desencolar(heap_aux);
-             heap_encolar(heap_aux, tupla_sitio);
-        // }else{
-        //     free(tupla_sitio);
-        // };
+        if(comparar_numeros(heap_ver_max(heap_aux), tupla_sitio) == 1){ //En caso de que el min_heap sea menor a el actual, desencolo el min_heap y encolo el actual.
+            free(heap_desencolar(heap_aux));
+            heap_encolar(heap_aux, tupla_sitio);
+        }else{
+            free(tupla_sitio);
+        };
         hash_iter_avanzar(hash_iter);
     }
     hash_iter_destruir(hash_iter);
-    //Al tener el heap completo, voy desencolando e imprimiendo sus valores.
     printf("Sitios mas visitados:\n");
+
+    pila_t* pila_aux = pila_crear();
     while(!heap_esta_vacio(heap_aux)){
         tupla_sitios_t* tupla = heap_desencolar(heap_aux);
+        pila_apilar(pila_aux, tupla);
+    }
+    while(!pila_esta_vacia(pila_aux)){
+        tupla_sitios_t* tupla = pila_desapilar(pila_aux);
         printf("\t%s - %zd\n", tupla->sitio, tupla->cant_llamados);
         free(tupla);
-    }
+    }    
+    //Al tener el heap completo, voy desencolando e imprimiendo sus valores.
+    pila_destruir(pila_aux);
     heap_destruir(heap_aux, NULL);
     return true;
 }
@@ -269,7 +266,7 @@ int main(int argc, char* argv[]){
             if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;
         }
         if(error){
-            fprintf(stderr, "Error en comandos %s", comandos[0]);
+            fprintf(stderr, "Error en comando %s", comandos[0]);
             free_strv(comandos);
             break;
         }
