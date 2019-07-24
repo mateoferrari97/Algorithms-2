@@ -123,7 +123,7 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
         buffer_spliteado = split(buffer, '\t');
 
 
-        char* ip_actual = malloc(sizeof(char) * strlen(buffer_spliteado[0]));
+        char* ip_actual = malloc(sizeof(char) * strlen(buffer_spliteado[0])+1);
         strcpy(ip_actual,buffer_spliteado[0]);
 
 
@@ -154,6 +154,8 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             }
             hash_guardar(ips, ip_actual, cola_ip);
         }
+
+
         //Mantenemos el hash de sitios actualizado.En caso de no existir el sitio, lo agregamos como clave y valor la cantidad. Si existe, cantidad++.
         if(!hash_pertenece(sitios, sitio_actual)){
             size_t* cantidad = malloc(sizeof(size_t));
@@ -164,23 +166,33 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             (*cantidad)++;
             hash_guardar(sitios, sitio_actual, cantidad);
         }
+
+
+
         //Mantenemos el abb actualizado. Como usamos un abb, va a estar ordenado.
-        if(!abb_pertenece(visitantes, ip_actual)){
-            char* ip = malloc(sizeof(char));
-            ip = ip_actual;
-            abb_guardar(visitantes, ip, NULL);
+        if(!abb_pertenece(visitantes, ip_actual)){            
+            abb_guardar(visitantes, ip_actual, NULL);
         }
         free_strv(buffer_spliteado);
     }
-
+    ips_dos_ordenadas[pos] = NULL;
     //size_t maximo_logico = pos;
     //bubbleSort(ips_dos_ordenadas, maximo_logico);
-    //Imprimo las ips que son posibles DoS.
+    //Imprimo las ips que son posibles DoS.     
     for(size_t i = 0; ips_dos_ordenadas[i]; i++){
         fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
-        //free(ips_dos_ordenadas[i]);
+        free(ips_dos_ordenadas[i]);
     }
+
+    ips_dos_ordenadas[2499] = NULL;
+    for(size_t i = pos; ips_dos_ordenadas[i]; i++){
+        free(ips_dos_ordenadas[i]);
+    }   
+
     //free(ips_dos_ordenadas);
+
+
+
     hash_destruir(ips_dos);
     free(buffer);
     fclose(archivo);
@@ -254,16 +266,35 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
-    hash_t* ips = hash_crear(NULL);/*necesitamos una func de destruccion para el struc de cola_ips   TODO */;
+
+    hash_t* ips = hash_crear(NULL);
     if(!ips) return 0;
     hash_t* sitios = hash_crear(NULL);
     if(!sitios){
         hash_destruir(ips);
         return 0;
     }
-    abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,NULL);
+
+    abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,free);
     char* buffer = NULL;
     size_t tamanio = 0;
     ssize_t linea;
