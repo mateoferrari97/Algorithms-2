@@ -66,7 +66,7 @@ int comparar_ips(char* ip1, char* ip2){
     char** ip1_split = split(ip1, '.');
     char** ip2_split = split(ip2, '.');
     int respuesta = 0;
-    for(size_t i = 0; i < MAXIMO_INDICE_IPS_SPLITEADO; i++){
+    for(size_t i = 0; ip1_split[i] && ip2_split[i]; i++){
         int ip1_atoi = atoi(ip1_split[i]);
         int ip2_atoi = atoi(ip2_split[i]);
         if(ip1_atoi < ip2_atoi){
@@ -103,19 +103,21 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     hash_t* ips_dos = hash_crear(NULL);
     if(!ips_dos) return false;
     char* buffer = NULL;
+    char* ip_actual;
+    char* sitio_actual;
+    char** buffer_spliteado;
     size_t tamanio = 0;
     ssize_t linea;
-    char* ips_dos_ordenadas[1000];
+    char* ips_dos_ordenadas[2500];
     size_t pos = 0;
     while(!feof(archivo)){
         linea = getline(&buffer, &tamanio, archivo);
-        if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
         if(linea == EOF) break;
-        char** buffer_spliteado = split(buffer, '\t');
-        char* ip_actual = buffer_spliteado[0];
-        char* sitio_actual = buffer_spliteado[3];
+        buffer[linea-1] = '\0';
+        buffer_spliteado = split(buffer, '\t');
+        ip_actual = buffer_spliteado[0];
+        sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
-
         //Guardamos la IP en ips(hash) y verificamos si hay o no un DOS
         if(!hash_pertenece(ips, ip_actual)){
             cola_ips_t* cola_ip = malloc(sizeof(cola_ips_t));
@@ -140,7 +142,6 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             }
             hash_guardar(ips, ip_actual, cola_ip);
         }
-
         //Mantenemos el hash de sitios actualizado.En caso de no existir el sitio, lo agregamos como clave y valor la cantidad. Si existe, cantidad++.
         if(!hash_pertenece(sitios, sitio_actual)){
             size_t* cantidad = malloc(sizeof(size_t));
@@ -157,13 +158,13 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             ip = ip_actual;
             abb_guardar(visitantes, ip, NULL);
         }
-        //free_strv(buffer_spliteado);
+        free_strv(buffer_spliteado);
     }
 
     size_t maximo_logico = pos;
     bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.
-    for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
+    //for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
     hash_destruir(ips_dos);
     free(buffer);
     fclose(archivo);
@@ -177,7 +178,7 @@ bool ver_visitantes(abb_t* visitantes, char* rango_inicial, char* rango_final){
     printf("Visitantes:\n");
     while(!abb_iter_in_al_final(abb_iter)){
         char* ip_actual = (char*)abb_iter_in_ver_actual(abb_iter);
-        if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
+        //if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
         abb_iter_in_avanzar(abb_iter);
     }
     abb_iter_in_destruir(abb_iter);
