@@ -84,7 +84,7 @@ int comparar_ips(char* ip1, char* ip2){
     return respuesta;
 }
 
-void bubbleSort(char** arr, size_t n){
+/*void bubbleSort(char** arr, size_t n){
     size_t i = 0, j = 0;
     for(i = 0; i < n - 1; i++){
         for(j = 0; j < n - i - 1; j++){
@@ -95,7 +95,7 @@ void bubbleSort(char** arr, size_t n){
             };
         }
     }
-}
+}*/
 
 bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
@@ -103,19 +103,31 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     hash_t* ips_dos = hash_crear(NULL);
     if(!ips_dos) return false;
     char* buffer = NULL;
-    char* ip_actual;
+    //char* ip_actual;
     char* sitio_actual;
     char** buffer_spliteado;
     size_t tamanio = 0;
     ssize_t linea;
-    char* ips_dos_ordenadas[2500];
+
+
+
+
+    char** ips_dos_ordenadas = malloc(sizeof(char*) * 2500);
+
+
     size_t pos = 0;
     while(!feof(archivo)){
         linea = getline(&buffer, &tamanio, archivo);
         if(linea == EOF) break;
         buffer[linea-1] = '\0';
         buffer_spliteado = split(buffer, '\t');
-        ip_actual = buffer_spliteado[0];
+
+
+        char* ip_actual = malloc(sizeof(char) * strlen(buffer_spliteado[0]));
+        strcpy(ip_actual,buffer_spliteado[0]);
+
+
+        
         sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
         //Guardamos la IP en ips(hash) y verificamos si hay o no un DOS
@@ -161,10 +173,14 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
         free_strv(buffer_spliteado);
     }
 
-    size_t maximo_logico = pos;
-    bubbleSort(ips_dos_ordenadas, maximo_logico);
+    //size_t maximo_logico = pos;
+    //bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.
-    //for(size_t i = 0; ips_dos_ordenadas[i]; i++) fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
+    for(size_t i = 0; ips_dos_ordenadas[i]; i++){
+        fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
+        //free(ips_dos_ordenadas[i]);
+    }
+    //free(ips_dos_ordenadas);
     hash_destruir(ips_dos);
     free(buffer);
     fclose(archivo);
