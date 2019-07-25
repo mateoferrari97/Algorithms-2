@@ -260,6 +260,14 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
     return true;
 }
 
+int cantidad_elementos_arreglo(char** arreglo){
+    int i = 0;
+    while(arreglo[i]){
+        i++;
+    }
+    return i;
+}
+
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
     hash_t* sitios = hash_crear(free);
@@ -274,26 +282,32 @@ int main(int argc, char* argv[]){
         if(linea == EOF) break;
         if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
         char** comandos = split(buffer, ' ');
+        int largo = cantidad_elementos_arreglo(comandos);
         if(strcmp(comandos[0], "agregar_archivo") == 0){
-            if(comandos[1]){
+            if(comandos[1] && largo == 2){
                 if(!agregar_archivo(comandos[1], sitios, abb_visitados)) error = true;
+            }else{
+                error = true;
             }
         }
         else if(strcmp(comandos[0], "ver_mas_visitados") == 0){
-            if(comandos[1]){
+            if(comandos[1] && largo == 2){
                 if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
+            }else{
+                error = true;
             }
         }
         else if(strcmp(comandos[0], "ver_visitantes") == 0){
-            if(comandos[1] && comandos[2]){
-                if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;;
+            if(comandos[1] && comandos[2] && largo == 3){
+                if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;
+            }else{
+                error = true;
             }            
         }else{
-            fprintf(stderr, "Error en comando %s", comandos[0]);
-            free_strv(comandos);
-            break;
+            error = true;
         }
         if(error){
+            fprintf(stderr, "Error en comando %s\n", comandos[0]);
             free_strv(comandos);
             break;
         }

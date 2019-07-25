@@ -1,5 +1,9 @@
-agregar_archivo access009.log
-agregar_archivo access008.log
+agregar_archivo access001.log
+agregar_archivo access002.log
 ver_mas_visitados 15
 ver_mas_visitados 3
+agregar_archivo access003.log
 ver_mas_visitados 10
+agregar_a_tu_hermana access004.log 28
+agregar_archivo access008.log
+agregar_archivo access009.log
