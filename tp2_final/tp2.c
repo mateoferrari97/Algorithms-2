@@ -24,7 +24,6 @@ typedef struct{
     char* sitio;
 }tupla_sitios_t;
 
-
 time_t iso8601_to_time(char* iso8601){
     struct tm bktime = { 0 };
     strptime(iso8601, TIME_FORMAT, &bktime);
@@ -103,50 +102,40 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     hash_t* ips_dos = hash_crear(NULL);
     if(!ips_dos) return false;
     char* buffer = NULL;
-    //char* ip_actual;
-    char* sitio_actual;
-    char** buffer_spliteado;
     size_t tamanio = 0;
     ssize_t linea;
 
-
-
-
     char** ips_dos_ordenadas = malloc(sizeof(char*) * 2500);
-
 
     size_t pos = 0;
     while(!feof(archivo)){
         linea = getline(&buffer, &tamanio, archivo);
         if(linea == EOF) break;
         buffer[linea-1] = '\0';
-        buffer_spliteado = split(buffer, '\t');
-
-
-        char* ip_actual = malloc(sizeof(char) * strlen(buffer_spliteado[0])+1);
-        strcpy(ip_actual,buffer_spliteado[0]);
-
-
-        
-        sitio_actual = buffer_spliteado[3];
+        char** buffer_spliteado = split(buffer, '\t');
+        char* ip_actual = buffer_spliteado[0];
+        char* sitio_actual = buffer_spliteado[3];
         time_t tiempo_actual = iso8601_to_time(buffer_spliteado[1]);
-        //Guardamos la IP en ips(hash) y verificamos si hay o no un DOS
-        if(!hash_pertenece(ips, ip_actual)){
+
+        if(!hash_pertenece(ips, ip_actual)){ // En caso de no pertenecer al hash de ips, lo guardo como clave y como valor una cola con la cantidad de elementos que va teniendo.
             cola_ips_t* cola_ip = malloc(sizeof(cola_ips_t));
             cola_ip->tiempos = cola_crear();
             cola_encolar(cola_ip->tiempos, &tiempo_actual);
             cola_ip->cantidad = 1; 
             hash_guardar(ips, ip_actual, cola_ip);
-        }else{
-            cola_ips_t* cola_ip = hash_obtener(ips, ip_actual); 
+        }else{ //Si la ip pertenece, lo encolamos y aumentamos la cantidad, nos fijamos la diferencia de tiempo entre el ultimo y el primero. En caso de ser menor a 2 segundos, lo insertamos en un hash de DOS.
+            cola_ips_t* cola_ip = (cola_ips_t*)hash_obtener(ips, ip_actual); 
             cola_encolar(cola_ip->tiempos, &tiempo_actual);
             cola_ip->cantidad++;
             if(cola_ip->cantidad >= 5){
                 if(difftime(tiempo_actual, (time_t)cola_ver_primero(cola_ip->tiempos)) <= 2){
                     if(!hash_pertenece(ips_dos, ip_actual)){
                         hash_guardar(ips_dos, ip_actual, NULL);
+
+                        char* ip = malloc(sizeof(char) * strlen(buffer_spliteado[0])+1);
+                        strcpy(ip,buffer_spliteado[0]);
                         //En caso de ser DoS, lo inserto en un arreglo para ordenarlo al final e imprimirlo.
-                        ips_dos_ordenadas[pos] = ip_actual;
+                        ips_dos_ordenadas[pos] = ip;
                         pos++;
                     }
                 }
@@ -154,7 +143,6 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             }
             hash_guardar(ips, ip_actual, cola_ip);
         }
-
 
         //Mantenemos el hash de sitios actualizado.En caso de no existir el sitio, lo agregamos como clave y valor la cantidad. Si existe, cantidad++.
         if(!hash_pertenece(sitios, sitio_actual)){
@@ -167,31 +155,22 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             hash_guardar(sitios, sitio_actual, cantidad);
         }
 
-
-
         //Mantenemos el abb actualizado. Como usamos un abb, va a estar ordenado.
         if(!abb_pertenece(visitantes, ip_actual)){            
             abb_guardar(visitantes, ip_actual, NULL);
         }
         free_strv(buffer_spliteado);
     }
+
     ips_dos_ordenadas[pos] = NULL;
-    //size_t maximo_logico = pos;
+
     //bubbleSort(ips_dos_ordenadas, maximo_logico);
     //Imprimo las ips que son posibles DoS.     
     for(size_t i = 0; ips_dos_ordenadas[i]; i++){
         fprintf(stdout, "DoS: %s\n", ips_dos_ordenadas[i]);
         free(ips_dos_ordenadas[i]);
     }
-
-    ips_dos_ordenadas[2499] = NULL;
-    for(size_t i = pos; ips_dos_ordenadas[i]; i++){
-        free(ips_dos_ordenadas[i]);
-    }   
-
-    //free(ips_dos_ordenadas);
-
-
+    free(ips_dos_ordenadas);
 
     hash_destruir(ips_dos);
     free(buffer);
@@ -267,38 +246,16 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
-
     hash_t* ips = hash_crear(NULL);
-    if(!ips) return 0;
     hash_t* sitios = hash_crear(NULL);
-    if(!sitios){
-        hash_destruir(ips);
-        return 0;
-    }
-
-    abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,free);
+    abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,NULL);
     char* buffer = NULL;
     size_t tamanio = 0;
     ssize_t linea;
     bool error = false;
+
     while(!feof(stdin)){
         linea = getline(&buffer, &tamanio, stdin);
         if(linea == EOF) break;
@@ -307,13 +264,13 @@ int main(int argc, char* argv[]){
         if(strcmp(comandos[0], "agregar_archivo") == 0){
             if(!agregar_archivo(comandos[1], ips, sitios, abb_visitados)) error = true;            
         }
-        if(strcmp(comandos[0], "ver_mas_visitados") == 0){
+        else if(strcmp(comandos[0], "ver_mas_visitados") == 0){
             if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
         }
-        if(strcmp(comandos[0], "ver_visitantes") == 0){
+        else if(strcmp(comandos[0], "ver_visitantes") == 0){
             if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;
         }
-        if(error){
+        else{
             fprintf(stderr, "Error en comando %s", comandos[0]);
             free_strv(comandos);
             break;
