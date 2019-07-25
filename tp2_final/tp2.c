@@ -69,6 +69,7 @@ bool es_valida(char* ip_actual, char* rango_inicial, char* rango_final){
 }
 
 int comparar_ips(char* ip1, char* ip2){
+    if(!ip1 || !ip2) return 0;
     char** ip1_split = split(ip1, '.');
     char** ip2_split = split(ip2, '.');
     int respuesta = 0;
@@ -103,12 +104,12 @@ void bubbleSort(char** arr, size_t n){
     }
 }
 
-void agregar_archivo(char* nombre_archivo, hash_t* sitios, abb_t* visitantes){
+bool agregar_archivo(char* nombre_archivo, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
-    if(!archivo) return;
+    if(!archivo) return false;
     hash_t* ips = hash_crear((hash_destruir_dato_t)destruir_cola_ips);
     hash_t* ips_dos = hash_crear(NULL);
-    if(!ips_dos) return;
+    if(!ips_dos) return false;
     char* buffer = NULL;
     size_t tamanio = 0;
     ssize_t linea;
@@ -186,31 +187,36 @@ void agregar_archivo(char* nombre_archivo, hash_t* sitios, abb_t* visitantes){
     hash_destruir(ips_dos);
     free(buffer);
     fclose(archivo);
+
+    return true;
 }
 
 //En esta funcion nos encargamos de recorrer el abb de visitados con un iterador interno  de tal manera que los visitantes que van a ser imprimidos son aquellos que esten en el rango pasado por parametro.
-void ver_visitantes(abb_t* visitantes, char* rango_inicial, char* rango_final){
+bool ver_visitantes(abb_t* visitantes, char* rango_inicial, char* rango_final){
+    if(abb_cantidad(visitantes) == 0) return true;
     abb_iter_t* abb_iter = abb_iter_in_crear(visitantes);
-    if(!abb_iter) return;
-    printf("Visitantes:\n");
+    if(!abb_iter) return false;
+    fprintf(stdout, "Visitantes:\n");
     while(!abb_iter_in_al_final(abb_iter)){
         char* ip_actual = (char*)abb_iter_in_ver_actual(abb_iter);
-        if(es_valida(ip_actual, rango_inicial, rango_final)) printf("\t%s\n", abb_iter_in_ver_actual(abb_iter));
+        if(es_valida(ip_actual, rango_inicial, rango_final)) fprintf(stdout, "\t%s\n", abb_iter_in_ver_actual(abb_iter));
         abb_iter_in_avanzar(abb_iter);
     }
     abb_iter_in_destruir(abb_iter);
+    return true;
 }
 
-void ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
-    // Creo el heap y el iter que vamos a usar
+bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
+    if(hash_cantidad(sitios) == 0) return true;
+     // Creo el heap y el iter que vamos a usar
     heap_t* heap_aux = heap_crear((cmp_func_t )comparar_numeros);
-    if(!heap_aux) return;
+    if(!heap_aux) return false;
     hash_iter_t* hash_iter = hash_iter_crear(sitios);
     if(!hash_iter){
         heap_destruir(heap_aux,NULL);
-        return;
+        return false;
     }
-    // //Completo el heap con los primeros n_mas_solicitados.
+    //Completo el heap con los primeros n_mas_solicitados.
     for(size_t i = 0; i < n_mas_solicitados; i++){
         char* sitio_actual = (char*)hash_iter_ver_actual(hash_iter);
         size_t cant_llamados_actual = *((size_t*)hash_obtener(sitios, sitio_actual));
@@ -236,7 +242,7 @@ void ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
         hash_iter_avanzar(hash_iter);
     }
     hash_iter_destruir(hash_iter);
-    printf("Sitios mas visitados:\n");
+    fprintf(stdout, "Sitios mas visitados:\n");
 
     pila_t* pila_aux = pila_crear();
     while(!heap_esta_vacio(heap_aux)){
@@ -245,14 +251,14 @@ void ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
     }
     while(!pila_esta_vacia(pila_aux)){
         tupla_sitios_t* tupla = pila_desapilar(pila_aux);
-        printf("\t%s - %zd\n", tupla->sitio, tupla->cant_llamados);
+        fprintf(stdout, "\t%s - %zd\n", tupla->sitio, tupla->cant_llamados);
         free(tupla);
     }    
     //Al tener el heap completo, voy desencolando e imprimiendo sus valores.
     pila_destruir(pila_aux);
     heap_destruir(heap_aux, NULL);
+    return true;
 }
-
 
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
@@ -261,26 +267,36 @@ int main(int argc, char* argv[]){
     char* buffer = NULL;
     size_t tamanio = 0;
     ssize_t linea;
+    bool error = false;
+
     while(!feof(stdin)){
         linea = getline(&buffer, &tamanio, stdin);
         if(linea == EOF) break;
         if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
         char** comandos = split(buffer, ' ');
         if(strcmp(comandos[0], "agregar_archivo") == 0){
-            agregar_archivo(comandos[1], sitios, abb_visitados);          
+            if(comandos[1]){
+                if(!agregar_archivo(comandos[1], sitios, abb_visitados)) error = true;
+            }
         }
         else if(strcmp(comandos[0], "ver_mas_visitados") == 0){
-            ver_mas_visitados(atoi(comandos[1]),sitios);
+            if(comandos[1]){
+                if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
+            }
         }
         else if(strcmp(comandos[0], "ver_visitantes") == 0){
-            ver_visitantes(abb_visitados, comandos[1],comandos[2]);
-        }
-        else{
+            if(comandos[1] && comandos[2]){
+                if(!ver_visitantes(abb_visitados, comandos[1],comandos[2])) error = true;;
+            }            
+        }else{
             fprintf(stderr, "Error en comando %s", comandos[0]);
             free_strv(comandos);
             break;
         }
-        // Si hubo algun error en los comandoss terminamos el programa
+        if(error){
+            free_strv(comandos);
+            break;
+        }
         fprintf(stdout, "OK\n");
         free_strv(comandos);
     }
