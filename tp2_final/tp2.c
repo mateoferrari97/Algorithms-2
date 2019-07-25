@@ -14,7 +14,7 @@
 #define MAXIMO_INDICE_IPS_SPLITEADO 4
 
 typedef struct{
-    size_t cantidad;
+    size_t* cantidad;
     cola_t* tiempos;
 }cola_ips_t;
 
@@ -31,6 +31,7 @@ time_t iso8601_to_time(char* iso8601){
 }
 
 void destruir_cola_ips(cola_ips_t* dato){
+    free(dato->cantidad);
     cola_destruir(dato->tiempos, NULL);
     free(dato);
 }
@@ -96,9 +97,10 @@ int comparar_ips(char* ip1, char* ip2){
     }
 }*/
 
-bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* visitantes){
+bool agregar_archivo(char* nombre_archivo, hash_t* sitios, abb_t* visitantes){
     FILE* archivo = fopen(nombre_archivo, "r");
     if(!archivo) return false;
+    hash_t* ips = hash_crear((hash_destruir_dato_t)destruir_cola_ips);
     hash_t* ips_dos = hash_crear(NULL);
     if(!ips_dos) return false;
     char* buffer = NULL;
@@ -121,13 +123,16 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
             cola_ips_t* cola_ip = malloc(sizeof(cola_ips_t));
             cola_ip->tiempos = cola_crear();
             cola_encolar(cola_ip->tiempos, &tiempo_actual);
-            cola_ip->cantidad = 1; 
+            size_t* cantidad = malloc(sizeof(size_t));
+            *cantidad = 1;
+            cola_ip->cantidad = cantidad; 
             hash_guardar(ips, ip_actual, cola_ip);
         }else{ //Si la ip pertenece, lo encolamos y aumentamos la cantidad, nos fijamos la diferencia de tiempo entre el ultimo y el primero. En caso de ser menor a 2 segundos, lo insertamos en un hash de DOS.
             cola_ips_t* cola_ip = (cola_ips_t*)hash_obtener(ips, ip_actual); 
             cola_encolar(cola_ip->tiempos, &tiempo_actual);
-            cola_ip->cantidad++;
-            if(cola_ip->cantidad >= 5){
+            size_t* cantidad = cola_ip->cantidad;
+            (*cantidad)++;
+            if(*cantidad >= 5){
                 if(difftime(tiempo_actual, (time_t)cola_ver_primero(cola_ip->tiempos)) <= 2){
                     if(!hash_pertenece(ips_dos, ip_actual)){
                         hash_guardar(ips_dos, ip_actual, NULL);
@@ -140,8 +145,9 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
                     }
                 }
                 cola_desencolar(cola_ip->tiempos);
+                (*cantidad)--;
             }
-            hash_guardar(ips, ip_actual, cola_ip);
+            //hash_guardar(ips, ip_actual, cola_ip);
         }
 
         //Mantenemos el hash de sitios actualizado.En caso de no existir el sitio, lo agregamos como clave y valor la cantidad. Si existe, cantidad++.
@@ -152,7 +158,6 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
         }else{
             size_t* cantidad = hash_obtener(sitios, sitio_actual);
             (*cantidad)++;
-            hash_guardar(sitios, sitio_actual, cantidad);
         }
 
         //Mantenemos el abb actualizado. Como usamos un abb, va a estar ordenado.
@@ -172,6 +177,7 @@ bool agregar_archivo(char* nombre_archivo, hash_t* ips, hash_t* sitios, abb_t* v
     }
     free(ips_dos_ordenadas);
 
+    hash_destruir(ips);
     hash_destruir(ips_dos);
     free(buffer);
     fclose(archivo);
@@ -248,8 +254,7 @@ bool ver_mas_visitados(size_t n_mas_solicitados, hash_t* sitios){
 
 int main(int argc, char* argv[]){
     // Empiezo el programa creando las estructuras que voy a utilizar para manejar la informacion
-    hash_t* ips = hash_crear(NULL);
-    hash_t* sitios = hash_crear(NULL);
+    hash_t* sitios = hash_crear(free);
     abb_t* abb_visitados = abb_crear((abb_comparar_clave_t)comparar_ips,NULL);
     char* buffer = NULL;
     size_t tamanio = 0;
@@ -262,7 +267,7 @@ int main(int argc, char* argv[]){
         if(buffer[linea - 1] == '\n') buffer[linea - 1] = '\0';
         char** comandos = split(buffer, ' ');
         if(strcmp(comandos[0], "agregar_archivo") == 0){
-            if(!agregar_archivo(comandos[1], ips, sitios, abb_visitados)) error = true;            
+            if(!agregar_archivo(comandos[1], sitios, abb_visitados)) error = true;            
         }
         else if(strcmp(comandos[0], "ver_mas_visitados") == 0){
             if(!ver_mas_visitados(atoi(comandos[1]),sitios)) error = true;
@@ -280,7 +285,6 @@ int main(int argc, char* argv[]){
         free_strv(comandos);
     }
     abb_destruir(abb_visitados);
-    hash_destruir(ips);
     hash_destruir(sitios);
     free(buffer);
 }
