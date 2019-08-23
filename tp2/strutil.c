@@ -100,11 +100,8 @@ char *join(char **strv, char sep){
 }
 
 void free_strv(char *strv[]){
-    size_t i = 0;
-    while(strv[i] != NULL){
+    for(size_t i = 0; strv[i]; i++){
         free(strv[i]);
-        i++;
     }
-    free(strv[i]);
     free(strv);
 }
