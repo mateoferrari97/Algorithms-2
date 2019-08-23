@@ -17,6 +17,5 @@ TDAs implementados:
 TPs:
 
 TP1: Strutil - Fixcol - Brainfuck (C)
-TP2: Twitter (C)
-TP2 extra: Reporte de DDOS (C)
+TP2: Reporte de DDOS (C)
 TP3: Mafia (PYTHON)
